@@ -8,12 +8,13 @@
     "src"
   ],
   "engines": {
-    "node": ">=10"
+    "node": "^14"
   },
   "scripts": {
     "start": "tsdx watch",
     "build": "tsdx build",
     "test": "tsdx test",
+    "dev": "tsdx test --watchAll",
     "lint": "tsdx lint",
     "prepare": "tsdx build",
     "size": "size-limit",
@@ -26,10 +27,10 @@
     }
   },
   "prettier": {
-    "printWidth": 80,
-    "semi": true,
     "singleQuote": true,
-    "trailingComma": "es5"
+    "arrowParens": "always",
+    "trailingComma": "all",
+    "endOfLine": "lf"
   },
   "name": "serverless-telegram",
   "author": "David D. Rolle",
@@ -45,8 +46,10 @@
     }
   ],
   "devDependencies": {
+    "@azure/functions": "^1.2.2",
     "@size-limit/preset-small-lib": "^4.9.1",
-    "husky": "^4.3.6",
+    "@types/node-telegram-bot-api": "^0.50.4",
+    "husky": "^3.1.0",
     "size-limit": "^4.9.1",
     "tsdx": "^0.14.1",
     "tslib": "^2.0.3",
