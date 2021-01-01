@@ -6,48 +6,45 @@ Congrats! You just saved yourself hours of work by bootstrapping this project wi
 
 > If you’re new to TypeScript, checkout [this handy cheatsheet](https://devhints.io/typescript)
 
+## Installation
+
+Requires:
+- NodeJS v14 (to support Azure functions)
+- Yarn (to support package resolutions overrides)
+
+```bash
+yarn install
+```
+
 ## Commands
 
-TSDX scaffolds your new library inside `/src`.
+TSDX scaffolds the library inside `/src`.
 
 To run TSDX, use:
 
 ```bash
-npm start # or yarn start
+yarn start
 ```
 
 This builds to `/dist` and runs the project in watch mode so any edits you save inside `src` causes a rebuild to `/dist`.
 
-To do a one-off build, use `npm run build` or `yarn build`.
+To do a one-off build, use `yarn build`.
 
-To run tests, use `npm test` or `yarn test`.
+To run tests, use `yarn test`.
+
+To run tests in watch mode, use `yarn dev`.
 
 ## Configuration
 
-Code quality is set up for you with `prettier`, `husky`, and `lint-staged`. Adjust the respective fields in `package.json` accordingly.
+Code quality is set up for you with `prettier`, `husky` (v3, since v4 does not support VS Code), and `lint-staged`. Adjust the respective fields in `package.json` accordingly.
 
 ### Jest
 
-Jest tests are set up to run with `npm test` or `yarn test`.
+Jest tests are set up to run with `yarn test`.
 
 ### Bundle Analysis
 
 [`size-limit`](https://github.com/ai/size-limit) is set up to calculate the real cost of your library with `npm run size` and visualize the bundle with `npm run analyze`.
-
-#### Setup Files
-
-This is the folder structure we set up for you:
-
-```txt
-/src
-  index.tsx       # EDIT THIS
-/test
-  blah.test.tsx   # EDIT THIS
-.gitignore
-package.json
-README.md         # EDIT THIS
-tsconfig.json
-```
 
 ### Rollup
 
