@@ -1,5 +1,6 @@
 import { HttpRequest } from '@azure/functions';
 import ctx from './defaultContext';
+import type { Message, MessageHandler, Response } from '../src';
 import { createAzureTelegramWebhook } from '../src';
 
 const textMessageUpdate = {
@@ -17,11 +18,13 @@ const textResponse = {
   },
 };
 
-describe('createAzureTelegramWebhook', () => {
-  const webhook = createAzureTelegramWebhook(async ({ text }) => text);
+const handler: MessageHandler = async ({ text }: Message): Promise<Response> =>
+  text;
 
-  // note: we use async/await because Jest's .resolves does not fail the tests.
-  it('handles telegram webhook updates and responses', async () => {
+// note: we use async/await because Jest's .resolves does not fail the tests.
+describe('createAzureTelegramWebhook', () => {
+  it('handles telegram webhook updates and responses via http', async () => {
+    const webhook = createAzureTelegramWebhook(handler);
     expect(await webhook(ctx, textMessageUpdate)).toEqual(textResponse);
   });
 });

@@ -1,10 +1,10 @@
-import { Context, HttpRequest } from '@azure/functions';
+import type { Context, HttpRequest } from '@azure/functions';
 
 export type BodyHandler = (
   body?: HttpRequest['body'],
 ) => Promise<HttpRequest['body'] | void>;
 
-export default (handler: BodyHandler) => async (
+export const wrapAzure = (handler: BodyHandler) => async (
   ctx: Context,
   { body }: HttpRequest,
 ): Promise<Partial<HttpRequest>> => {
@@ -15,3 +15,5 @@ export default (handler: BodyHandler) => async (
     ? { body }
     : body && { body, headers: { 'Content-Type': 'application/json' } };
 };
+
+export default wrapAzure;

@@ -1,4 +1,4 @@
-import { Message, Update } from 'node-telegram-bot-api';
+import type { Message, Update } from 'node-telegram-bot-api';
 
 export type MessageHandler = (message: Message) => Promise<Response>;
 
@@ -52,9 +52,11 @@ export const toResponseMethod = (
   return;
 };
 
-export default (handler: MessageHandler) => async (
+export const wrapTelegram = (handler: MessageHandler) => async (
   update: Update,
 ): Promise<ResponseMethod> => {
   const msg = getMessage(update);
   return msg && toResponseMethod(strToText(await handler(msg)), msg.chat.id);
 };
+
+export default wrapTelegram;
