@@ -1,19 +1,24 @@
-import type { Context, HttpRequest } from '@azure/functions';
+export interface HttpRequest {
+  body?: unknown;
+  headers?: { [key: string]: string };
+}
 
-export type BodyHandler = (
-  body?: HttpRequest['body'],
-) => Promise<HttpRequest['body'] | void>;
+export interface Context {
+  log: (...args: any[]) => void;
+}
+
+export type BodyHandler = (body: unknown) => Promise<any | void>;
 
 export const wrapAzure = (handler: BodyHandler) => async (
-  ctx: Context,
+  { log }: Context,
   { body }: HttpRequest,
-): Promise<Partial<HttpRequest>> => {
-  ctx.log('request body:', body);
-  body = body && (await handler(body));
-  ctx.log('response body:', body);
-  return typeof body === 'string'
-    ? { body }
-    : body && { body, headers: { 'Content-Type': 'application/json' } };
+): Promise<HttpRequest | void> => {
+  log('request body:', body);
+  const res = body && (await handler(body));
+  log('response body:', res);
+  return typeof res === 'string'
+    ? { body: res }
+    : res && { body: res, headers: { 'Content-Type': 'application/json' } };
 };
 
 export default wrapAzure;

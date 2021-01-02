@@ -1,11 +1,13 @@
-import { HttpRequest } from '@azure/functions';
 import ctx from './defaultContext';
 import type { Message, MessageHandler, Response } from '../src';
 import { createAzureTelegramWebhook } from '../src';
 
 const textMessageUpdate = {
-  body: { message: { text: 'more good things please', chat: { id: 1 } } },
-} as HttpRequest;
+  body: {
+    update_id: 1,
+    message: { text: 'more good things please', chat: { id: 1 } },
+  },
+};
 
 const textResponse = {
   body: {

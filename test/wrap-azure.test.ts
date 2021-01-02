@@ -54,7 +54,7 @@ const emptyRequest: HttpRequest = {
 
 // note: we use async/await because Jest's .resolves does not fail the tests.
 describe('wrapAzure', () => {
-  const echo = wrapAzure(async (x: unknown) => x);
+  const echo = wrapAzure(async (x: any) => x);
   it('handles JSON objects', async () => {
     expect(await echo(ctx, jsonRequest)).toEqual({
       body: jsonObj,
