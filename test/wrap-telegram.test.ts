@@ -1,7 +1,8 @@
 import { Chat, Message, Update } from 'node-telegram-bot-api';
 import wrapTelegram, {
   getMessage,
-  strToText,
+  MessageHandler,
+  normalizeResponse,
   ResponseMethod,
   toResponseMethod,
 } from '../src/wrap-telegram';
@@ -56,16 +57,16 @@ describe('getMessage', () => {
   });
 });
 
-describe('strToText', () => {
+describe('normalizeResponse', () => {
   it('converts a string', () => {
-    expect(strToText(text)).toEqual({ text });
+    expect(normalizeResponse(text)).toEqual({ text });
   });
   it('ignores an object', () => {
-    expect(strToText({ text })).toEqual({ text });
-    expect(strToText({ media })).toEqual({ media });
+    expect(normalizeResponse({ text })).toEqual({ text });
+    expect(normalizeResponse({ media })).toEqual({ media });
   });
   it('ignores undefined', () => {
-    expect(strToText()).toBeUndefined();
+    expect(normalizeResponse()).toBeUndefined();
   });
 });
 
@@ -93,5 +94,17 @@ describe('wrapTelegram', () => {
 
   it("ignores updates that don't contain a message", async () => {
     expect(await echoHandler({ update_id: 1 })).toBeUndefined();
+  });
+
+  it('handles errors', async () => {
+    const throwingHandler: MessageHandler = async ({ text }) => {
+      throw new Error(text);
+    };
+    const response = await wrapTelegram(throwingHandler, 123)(update);
+    expect(response).toHaveProperty('chat_id', 123);
+    expect(response).toHaveProperty('method', 'sendMessage');
+    expect(response).toHaveProperty('text');
+
+    expect(wrapTelegram(throwingHandler)(update)).rejects.toThrow(text);
   });
 });

@@ -2,61 +2,67 @@ import type { Message, Update } from 'node-telegram-bot-api';
 
 export type MessageHandler = (message: Message) => Promise<Response>;
 
-export type Response = ResponseObject | string | undefined;
+export type Response = string | ResponseObject | ResponseMethod | NoResponse;
 
 export interface ResponseObject {
   text?: string;
   media?: string[];
   sticker?: string;
+  /**
+   * Optionally redirect response to a different chat than the message came from
+   */
+  chat_id?: number;
 }
 
-export type ResponseMethod =
-  | SendMediaGroup
-  | SendMessage
-  | SendSticker
-  | undefined;
-
-export interface SendMessage {
-  method: 'sendMessage';
-  chat_id: Id;
-  text: string;
+export interface ResponseMethod extends ResponseObject {
+  method: 'sendMessage' | 'sendMediaGroup' | 'sendSticker';
+  chat_id: number;
 }
 
-export interface SendMediaGroup {
-  method: 'sendMediaGroup';
-  chat_id: Id;
-  media: string[];
-}
+export type NoResponse = void | null | undefined | false | '' | {};
 
-export interface SendSticker {
-  method: 'sendSticker';
-  chat_id: Id;
-  sticker: string;
-}
+export const getMessage = (update: Partial<Update>): Message | undefined =>
+  update.message ||
+  update.edited_message ||
+  update.channel_post ||
+  update.edited_channel_post;
 
-export type Id = number | string; // integer or string
-
-export const getMessage = (update: Update): Message | undefined =>
-  update.message || update.edited_message;
-
-export const strToText = (r?: Response): ResponseObject | undefined =>
-  typeof r === 'string' ? { text: r } : r;
+export const normalizeResponse = (
+  r?: Response,
+): ResponseObject | ResponseMethod | undefined =>
+  typeof r === 'string' ? { text: r } : r ? r : undefined;
 
 export const toResponseMethod = (
-  { media, text, sticker }: ResponseObject = {},
-  chat_id: Id,
-): ResponseMethod => {
-  if (text) return { method: 'sendMessage', text, chat_id };
-  if (media) return { method: 'sendMediaGroup', media, chat_id };
-  if (sticker) return { method: 'sendSticker', sticker, chat_id };
-  return;
+  res: ResponseObject | ResponseMethod = {},
+  chat_id: number,
+): ResponseMethod | void => {
+  if (res.text) return { method: 'sendMessage', chat_id, ...res };
+  if (res.media) return { method: 'sendMediaGroup', chat_id, ...res };
+  if (res.sticker) return { method: 'sendSticker', chat_id, ...res };
 };
 
-export const wrapTelegram = (handler: MessageHandler) => async (
-  update: Update,
-): Promise<ResponseMethod> => {
-  const msg = getMessage(update);
-  return msg && toResponseMethod(strToText(await handler(msg)), msg.chat.id);
+export const isUpdate = (body: any): body is Partial<Update> =>
+  body && typeof body === 'object' && 'update_id' in body;
+
+export const wrapTelegram = (
+  handler: MessageHandler,
+  errorChatId?: number,
+) => async (update: unknown): Promise<ResponseMethod | void> => {
+  try {
+    const msg = isUpdate(update) && getMessage(update);
+    if (!msg) return;
+    return toResponseMethod(normalizeResponse(await handler(msg)), msg.chat.id);
+  } catch (err) {
+    if (!errorChatId) throw err;
+    return {
+      method: 'sendMessage',
+      chat_id: errorChatId,
+      text: `${err.name}: '${err.message}', while handling update:
+${JSON.stringify(update, null, 2)}
+
+${err.stack}`,
+    };
+  }
 };
 
 export default wrapTelegram;

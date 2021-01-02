@@ -8,5 +8,7 @@ export type { Response, MessageHandler } from './wrap-telegram';
 export type { HttpRequest, Context, BodyHandler } from './wrap-azure';
 
 // single combined wrapper for convenience
-export const createAzureTelegramWebhook = (handler: MessageHandler) =>
-  wrapAzure(wrapTelegram(handler));
+export const createAzureTelegramWebhook = (
+  handler: MessageHandler,
+  errorChatId?: number,
+) => wrapAzure(wrapTelegram(handler, errorChatId));
