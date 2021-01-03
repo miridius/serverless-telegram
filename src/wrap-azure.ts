@@ -5,20 +5,24 @@ export interface HttpRequest {
 
 export interface Context {
   log: (...args: any[]) => void;
+  res?: HttpRequest;
 }
 
 export type BodyHandler = (body: unknown) => Promise<any | void>;
 
 export const wrapAzure = (handler: BodyHandler) => async (
-  { log }: Context,
+  ctx: Context,
   { body }: HttpRequest,
 ): Promise<HttpRequest | void> => {
-  log('request body:', body);
+  ctx.log('request body:', body);
   const res = body && (await handler(body));
-  log('response body:', res);
-  return typeof res === 'string'
-    ? { body: res }
-    : res && { body: res, headers: { 'Content-Type': 'application/json' } };
+  ctx.log('response body:', res);
+  if (!res) return;
+  ctx.res = { body: res };
+  if (typeof res !== 'string') {
+    ctx.res.headers = { 'Content-Type': 'application/json' };
+  }
+  return ctx.res;
 };
 
 export default wrapAzure;
