@@ -32,13 +32,13 @@ export const getMessage = (update: Partial<Update>): Message | undefined =>
   update.channel_post ||
   update.edited_channel_post;
 
-export const normalizeResponse = (
+export const strToObj = (
   r?: Response,
 ): ResponseObject | ResponseMethod | undefined =>
   typeof r === 'string' ? { text: r } : r ? r : undefined;
 
-export const toResponseMethod = (
-  res: ResponseObject | ResponseMethod,
+export const toMethod = (
+  res: ResponseObject | ResponseMethod = {},
   chat_id: number,
 ): ResponseMethod | void => {
   if (res.text) return { method: 'sendMessage', chat_id, ...res };
@@ -57,19 +57,28 @@ export const wrapTelegram = (
   log: Logger,
 ): Promise<ResponseMethod | NoResponse> => {
   try {
+    log.verbose('Bot Update:', update);
     const msg = isUpdate(update) && getMessage(update);
-    const res = msg && normalizeResponse(await handler(msg, log));
-    return res && toResponseMethod(res, (msg as Message).chat.id);
+    const res = msg && toMethod(strToObj(await handler(msg, log)), msg.chat.id);
+    log.verbose('Bot Response:', res);
+    return res;
   } catch (err) {
-    if (!errorChatId) throw err;
-    return {
-      method: 'sendMessage',
-      chat_id: errorChatId,
-      text: `${err.name}: '${err.message}', while handling update:
+    if (errorChatId) {
+      const text = `Bot Error while handling this update:
 ${JSON.stringify(update, null, 2)}
 
-${err.stack}`,
-    };
+${err.stack}`;
+      log.error(text);
+      return {
+        method: 'sendMessage',
+        chat_id: errorChatId,
+        text,
+      };
+    } else {
+      log.error(`Bot Error while handling this update:
+${JSON.stringify(update, null, 2)}`);
+      throw err;
+    }
   }
 };
 

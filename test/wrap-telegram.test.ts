@@ -2,9 +2,9 @@ import { Chat, Message, Update } from 'node-telegram-bot-api';
 import wrapTelegram, {
   getMessage,
   MessageHandler,
-  normalizeResponse,
+  strToObj,
   ResponseMethod,
-  toResponseMethod,
+  toMethod,
 } from '../src/wrap-telegram';
 import ctx from './defaultContext';
 
@@ -60,29 +60,29 @@ describe('getMessage', () => {
 
 describe('normalizeResponse', () => {
   it('converts a string', () => {
-    expect(normalizeResponse(text)).toEqual({ text });
+    expect(strToObj(text)).toEqual({ text });
   });
   it('ignores an object', () => {
-    expect(normalizeResponse({ text })).toEqual({ text });
-    expect(normalizeResponse({ media })).toEqual({ media });
+    expect(strToObj({ text })).toEqual({ text });
+    expect(strToObj({ media })).toEqual({ media });
   });
   it('ignores undefined', () => {
-    expect(normalizeResponse()).toBeUndefined();
+    expect(strToObj()).toBeUndefined();
   });
 });
 
 describe('toResponseMethod', () => {
   it('sends a text message', () => {
-    expect(toResponseMethod({ text }, chat_id)).toEqual(responseMethod);
+    expect(toMethod({ text }, chat_id)).toEqual(responseMethod);
   });
   it('sends a media group', () => {
-    expect(toResponseMethod({ media }, chat_id)).toEqual(mediaResponse);
+    expect(toMethod({ media }, chat_id)).toEqual(mediaResponse);
   });
   it('sends a sticker', () => {
-    expect(toResponseMethod({ sticker }, chat_id)).toEqual(stickerResponse);
+    expect(toMethod({ sticker }, chat_id)).toEqual(stickerResponse);
   });
   it('sends no response', () => {
-    expect(toResponseMethod({}, chat_id)).toBeUndefined();
+    expect(toMethod(undefined, chat_id)).toBeUndefined();
   });
 });
 

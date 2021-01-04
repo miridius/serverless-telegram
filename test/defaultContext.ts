@@ -1,3 +1,9 @@
-import { Context } from '@azure/functions';
+import { Context, Logger } from '@azure/functions';
 
-export default ({ log: jest.fn() } as unknown) as Context;
+const log = (jest.fn() as unknown) as Logger;
+log.verbose = jest.fn();
+log.info = jest.fn();
+log.warn = jest.fn();
+log.error = jest.fn();
+
+export default { log } as Context;
