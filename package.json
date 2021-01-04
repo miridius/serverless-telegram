@@ -43,8 +43,10 @@
       "limit": "10 KB"
     }
   ],
+  "dependencies": {
+    "@azure/functions": "^1.2.2"
+  },
   "devDependencies": {
-    "@azure/functions": "^1.2.2",
     "@size-limit/preset-small-lib": "^4.9.1",
     "@types/node-telegram-bot-api": "^0.51.0",
     "husky": "^3.1.0",

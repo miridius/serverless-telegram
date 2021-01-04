@@ -1,6 +1,11 @@
 import type { Message, Update } from 'node-telegram-bot-api';
+import { BodyHandler, Logger } from './wrap-azure';
+export { Message, Update };
 
-export type MessageHandler = (message: Message) => Promise<Response>;
+export type MessageHandler = (
+  message: Message,
+  log: Logger,
+) => Promise<Response>;
 
 export type Response = string | ResponseObject | ResponseMethod | NoResponse;
 
@@ -33,7 +38,7 @@ export const normalizeResponse = (
   typeof r === 'string' ? { text: r } : r ? r : undefined;
 
 export const toResponseMethod = (
-  res: ResponseObject | ResponseMethod = {},
+  res: ResponseObject | ResponseMethod,
   chat_id: number,
 ): ResponseMethod | void => {
   if (res.text) return { method: 'sendMessage', chat_id, ...res };
@@ -47,11 +52,14 @@ export const isUpdate = (body: any): body is Partial<Update> =>
 export const wrapTelegram = (
   handler: MessageHandler,
   errorChatId?: number,
-) => async (update: unknown): Promise<ResponseMethod | void> => {
+): BodyHandler => async (
+  update: unknown,
+  log: Logger,
+): Promise<ResponseMethod | NoResponse> => {
   try {
     const msg = isUpdate(update) && getMessage(update);
-    if (!msg) return;
-    return toResponseMethod(normalizeResponse(await handler(msg)), msg.chat.id);
+    const res = msg && normalizeResponse(await handler(msg, log));
+    return res && toResponseMethod(res, (msg as Message).chat.id);
   } catch (err) {
     if (!errorChatId) throw err;
     return {

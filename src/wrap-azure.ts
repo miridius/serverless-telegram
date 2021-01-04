@@ -1,22 +1,13 @@
-export interface HttpRequest {
-  body?: unknown;
-  headers?: { [key: string]: string };
-}
+import { AzureFunction, Context, HttpRequest, Logger } from '@azure/functions';
+export { AzureFunction, Context, HttpRequest, Logger };
 
-export interface Context {
-  log: (...args: any[]) => void;
-  res?: HttpRequest;
-}
+export type BodyHandler = (body: unknown, log: Logger) => Promise<any | void>;
 
-export type BodyHandler = (body: unknown) => Promise<any | void>;
-
-export const wrapAzure = (handler: BodyHandler) => async (
+export const wrapAzure = (handler: BodyHandler): AzureFunction => async (
   ctx: Context,
   { body }: HttpRequest,
-): Promise<HttpRequest | void> => {
-  ctx.log('request body:', body);
-  const res = body && (await handler(body));
-  ctx.log('response body:', res);
+): Promise<Partial<HttpRequest> | void> => {
+  const res = body && (await handler(body, ctx.log));
   if (!res) return;
   ctx.res = { body: res };
   if (typeof res !== 'string') {

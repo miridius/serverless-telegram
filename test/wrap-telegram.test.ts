@@ -6,6 +6,7 @@ import wrapTelegram, {
   ResponseMethod,
   toResponseMethod,
 } from '../src/wrap-telegram';
+import ctx from './defaultContext';
 
 const chat_id = 3;
 const chat: Chat = {
@@ -81,7 +82,7 @@ describe('toResponseMethod', () => {
     expect(toResponseMethod({ sticker }, chat_id)).toEqual(stickerResponse);
   });
   it('sends no response', () => {
-    expect(toResponseMethod(undefined, chat_id)).toBeUndefined();
+    expect(toResponseMethod({}, chat_id)).toBeUndefined();
   });
 });
 
@@ -89,22 +90,24 @@ describe('wrapTelegram', () => {
   const echoHandler = wrapTelegram(async ({ text }) => text);
 
   it('passes messages to the handler and forms the response method', async () => {
-    expect(await echoHandler(update)).toEqual(responseMethod);
+    expect(await echoHandler(update, ctx.log)).toEqual(responseMethod);
   });
 
   it("ignores updates that don't contain a message", async () => {
-    expect(await echoHandler({ update_id: 1 })).toBeUndefined();
+    expect(await echoHandler({ update_id: 1 }, ctx.log)).toBeUndefined();
   });
 
   it('handles errors', async () => {
     const throwingHandler: MessageHandler = async ({ text }) => {
       throw new Error(text);
     };
-    const response = await wrapTelegram(throwingHandler, 123)(update);
+    const response = await wrapTelegram(throwingHandler, 123)(update, ctx.log);
     expect(response).toHaveProperty('chat_id', 123);
     expect(response).toHaveProperty('method', 'sendMessage');
     expect(response).toHaveProperty('text');
 
-    expect(wrapTelegram(throwingHandler)(update)).rejects.toThrow(text);
+    expect(wrapTelegram(throwingHandler)(update, ctx.log)).rejects.toThrow(
+      text,
+    );
   });
 });
