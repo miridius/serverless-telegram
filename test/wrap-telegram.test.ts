@@ -1,4 +1,5 @@
 import { Chat, Message, Update } from 'node-telegram-bot-api';
+import { HttpResponse } from '../src/wrap-azure';
 import wrapTelegram, {
   getMessage,
   MessageHandler,
@@ -71,7 +72,7 @@ describe('normalizeResponse', () => {
   });
 });
 
-describe('toResponseMethod', () => {
+describe('toMethod', () => {
   it('sends a text message', () => {
     expect(toMethod({ text }, chat_id)).toEqual(responseMethod);
   });
@@ -83,6 +84,10 @@ describe('toResponseMethod', () => {
   });
   it('sends no response', () => {
     expect(toMethod(undefined, chat_id)).toBeUndefined();
+  });
+  it('returns user defined HTTP responses as is', () => {
+    let res: HttpResponse = { body: Buffer.from('this is a buffer') };
+    expect(toMethod(res, chat_id)).toEqual(res);
   });
 });
 

@@ -15,13 +15,12 @@
     "start": "tsdx watch",
     "build": "tsdx build",
     "test": "tsdx test",
-    "dev": "tsdx test --watchAll",
+    "test:watch": "tsdx test --watchAll",
     "lint": "tsdx lint",
     "prepare": "tsdx build",
     "size": "size-limit",
     "analyze": "size-limit --why"
   },
-  "peerDependencies": {},
   "husky": {
     "hooks": {
       "pre-commit": "tsdx lint"

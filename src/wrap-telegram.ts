@@ -1,5 +1,5 @@
 import type { Message, Update } from 'node-telegram-bot-api';
-import { BodyHandler, Logger } from './wrap-azure';
+import { BodyHandler, Logger, HttpResponse, isResponse } from './wrap-azure';
 export { Message, Update };
 
 export type MessageHandler = (
@@ -7,7 +7,12 @@ export type MessageHandler = (
   log: Logger,
 ) => Promise<Response>;
 
-export type Response = string | ResponseObject | ResponseMethod | NoResponse;
+export type Response =
+  | string
+  | ResponseObject
+  | ResponseMethod
+  | HttpResponse
+  | NoResponse;
 
 export interface ResponseObject {
   text?: string;
@@ -34,13 +39,15 @@ export const getMessage = (update: Partial<Update>): Message | undefined =>
 
 export const strToObj = (
   r?: Response,
-): ResponseObject | ResponseMethod | undefined =>
+): ResponseObject | ResponseMethod | HttpResponse | undefined =>
   typeof r === 'string' ? { text: r } : r ? r : undefined;
 
 export const toMethod = (
-  res: ResponseObject | ResponseMethod = {},
+  res: ResponseObject | ResponseMethod | HttpResponse = {},
   chat_id: number,
-): ResponseMethod | void => {
+): ResponseMethod | HttpResponse | void => {
+  // allow users to create their own HTTP Response and just pass it through
+  if (isResponse(res)) return res;
   if (res.text) return { method: 'sendMessage', chat_id, ...res };
   if (res.media) return { method: 'sendMediaGroup', chat_id, ...res };
   if (res.sticker) return { method: 'sendSticker', chat_id, ...res };
