@@ -20,8 +20,7 @@ const textResponse = {
   },
 };
 
-const handler: MessageHandler = async ({ text }: Message): Promise<Response> =>
-  text;
+const handler: MessageHandler = ({ text }: Message): Response => text;
 
 // note: we use async/await because Jest's .resolves does not fail the tests.
 describe('createAzureTelegramWebhook', () => {

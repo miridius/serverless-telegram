@@ -5,7 +5,7 @@ export { Message, Update };
 export type MessageHandler = (
   message: Message,
   log: Logger,
-) => Promise<Response>;
+) => Promise<Response> | Response;
 
 export type Response =
   | string
@@ -15,17 +15,17 @@ export type Response =
   | NoResponse;
 
 export interface ResponseObject {
+  // exactly one of the following 4 keys should be included
   text?: string;
-  media?: string[];
   sticker?: string;
-  /**
-   * Optionally redirect response to a different chat than the message came from
-   */
+  video?: string;
+  media?: string[];
+  // OPTIONAL: redirect response to a different chat than the message came from
   chat_id?: number;
 }
 
 export interface ResponseMethod extends ResponseObject {
-  method: 'sendMessage' | 'sendMediaGroup' | 'sendSticker';
+  method: 'sendMessage' | 'sendSticker' | 'sendVideo' | 'sendMediaGroup';
   chat_id: number;
 }
 
@@ -48,9 +48,15 @@ export const toMethod = (
 ): ResponseMethod | HttpResponse | void => {
   // allow users to create their own HTTP Response and just pass it through
   if (isResponse(res)) return res;
+  // convert the known telegram api methods
   if (res.text) return { method: 'sendMessage', chat_id, ...res };
-  if (res.media) return { method: 'sendMediaGroup', chat_id, ...res };
   if (res.sticker) return { method: 'sendSticker', chat_id, ...res };
+  if (res.video) return { method: 'sendVideo', chat_id, ...res };
+  if (res.media) return { method: 'sendMediaGroup', chat_id, ...res };
+  // Only ResponseMethod and NoResponse should make it to here, otherwise there's a problem
+  if (!(res as ResponseMethod).method && Object.keys(res).length) {
+    throw new Error(`Could not parse response: ${JSON.stringify(res)}`);
+  }
 };
 
 export const isUpdate = (body: any): body is Partial<Update> =>

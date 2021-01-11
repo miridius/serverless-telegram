@@ -6,6 +6,7 @@ import wrapTelegram, {
   strToObj,
   ResponseMethod,
   toMethod,
+  ResponseObject,
 } from '../src/wrap-telegram';
 import ctx from './defaultContext';
 
@@ -35,19 +36,25 @@ const responseMethod: ResponseMethod = {
   text,
 };
 
-const media = ['url1', 'url2'];
-
-const mediaResponse: ResponseMethod = {
-  method: 'sendMediaGroup',
-  chat_id,
-  media,
-};
-
 const sticker = 'sticker URL';
 const stickerResponse: ResponseMethod = {
   method: 'sendSticker',
   chat_id,
   sticker,
+};
+
+const video = 'video URL or file ID';
+const videoResponse: ResponseMethod = {
+  method: 'sendVideo',
+  chat_id,
+  video,
+};
+
+const media = ['url1', 'url2'];
+const mediaResponse: ResponseMethod = {
+  method: 'sendMediaGroup',
+  chat_id,
+  media,
 };
 
 describe('getMessage', () => {
@@ -73,21 +80,29 @@ describe('normalizeResponse', () => {
 });
 
 describe('toMethod', () => {
+  it('returns user defined HTTP responses as is', () => {
+    let res: HttpResponse = { body: Buffer.from('this is a buffer') };
+    expect(toMethod(res, chat_id)).toEqual(res);
+  });
   it('sends a text message', () => {
     expect(toMethod({ text }, chat_id)).toEqual(responseMethod);
-  });
-  it('sends a media group', () => {
-    expect(toMethod({ media }, chat_id)).toEqual(mediaResponse);
   });
   it('sends a sticker', () => {
     expect(toMethod({ sticker }, chat_id)).toEqual(stickerResponse);
   });
+  it('sends a video', () => {
+    expect(toMethod({ video }, chat_id)).toEqual(videoResponse);
+  });
+  it('sends a media group', () => {
+    expect(toMethod({ media }, chat_id)).toEqual(mediaResponse);
+  });
+  it('throws an error for unknown responses', () => {
+    expect(() => toMethod({ foo: 'bar' } as ResponseObject, chat_id)).toThrow(
+      'Could not parse response: {"foo":"bar"}',
+    );
+  });
   it('sends no response', () => {
     expect(toMethod(undefined, chat_id)).toBeUndefined();
-  });
-  it('returns user defined HTTP responses as is', () => {
-    let res: HttpResponse = { body: Buffer.from('this is a buffer') };
-    expect(toMethod(res, chat_id)).toEqual(res);
   });
 });
 
