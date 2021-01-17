@@ -8,6 +8,8 @@ export type {
   Message,
   Response,
   MessageHandler,
+  InlineHandler,
+  HandlerMap,
 } from './wrap-telegram';
 export type {
   AzureFunction,

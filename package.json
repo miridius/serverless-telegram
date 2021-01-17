@@ -5,8 +5,7 @@
   "typings": "dist/index.d.ts",
   "files": [
     "dist",
-    "src",
-    "index.js"
+    "src"
   ],
   "engines": {
     "node": "^14"

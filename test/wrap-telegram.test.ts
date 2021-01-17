@@ -1,4 +1,10 @@
-import { Chat, Message, Update } from 'node-telegram-bot-api';
+import {
+  Chat,
+  InlineQuery,
+  InlineQueryResult,
+  Message,
+  Update,
+} from 'node-telegram-bot-api';
 import { HttpResponse } from '../src/wrap-azure';
 import wrapTelegram, {
   getMessage,
@@ -7,6 +13,8 @@ import wrapTelegram, {
   ResponseMethod,
   toMethod,
   ResponseObject,
+  toInlineResponse,
+  InlineResult,
 } from '../src/wrap-telegram';
 import ctx from './defaultContext';
 
@@ -106,6 +114,94 @@ describe('toMethod', () => {
   });
 });
 
+describe('toInlineResponse', () => {
+  const queryId = 'q';
+  const results: (InlineResult | InlineQueryResult)[] = [
+    {
+      type: 'audio',
+      id: 'audio-id',
+      audio_url: 'foo://bar',
+      title: 'baz',
+    },
+    { photo_url: 'photo URL', thumb_url: 'thumb URL' },
+    { video_file_id: 'video file ID', title: 'video title' },
+  ];
+  it('works with results array', () => {
+    expect(toInlineResponse(results, queryId)).toMatchInlineSnapshot(`
+      Object {
+        "inline_query_id": "q",
+        "method": "answerInlineQuery",
+        "results": Array [
+          Object {
+            "audio_url": "foo://bar",
+            "id": "audio-id",
+            "title": "baz",
+            "type": "audio",
+          },
+          Object {
+            "id": "1",
+            "photo_url": "photo URL",
+            "thumb_url": "thumb URL",
+            "type": "photo",
+          },
+          Object {
+            "id": "2",
+            "title": "video title",
+            "type": "video",
+            "video_file_id": "video file ID",
+          },
+        ],
+      }
+    `);
+  });
+  it('works with answerInlineQuery options', () => {
+    expect(toInlineResponse({ results, cache_time: 100000 }, queryId))
+      .toMatchInlineSnapshot(`
+      Object {
+        "cache_time": 100000,
+        "inline_query_id": "q",
+        "method": "answerInlineQuery",
+        "results": Array [
+          Object {
+            "audio_url": "foo://bar",
+            "id": "audio-id",
+            "title": "baz",
+            "type": "audio",
+          },
+          Object {
+            "id": "1",
+            "photo_url": "photo URL",
+            "thumb_url": "thumb URL",
+            "type": "photo",
+          },
+          Object {
+            "id": "2",
+            "title": "video title",
+            "type": "video",
+            "video_file_id": "video file ID",
+          },
+        ],
+      }
+    `);
+  });
+  it('passes through HttpResponse and NoResponse', () => {
+    expect(toInlineResponse({ status: 200 }, queryId)).toEqual({ status: 200 });
+    expect(toInlineResponse(undefined, queryId)).toBeUndefined();
+  });
+  it('throws errors for unknown response objects', () => {
+    expect(() =>
+      toInlineResponse([{}], queryId),
+    ).toThrowErrorMatchingInlineSnapshot(
+      `"Could not determine InlineQueryResult type of {}"`,
+    );
+    expect(() =>
+      toInlineResponse({}, queryId),
+    ).toThrowErrorMatchingInlineSnapshot(
+      `"Response should either be an array of results or contain a results array: {}"`,
+    );
+  });
+});
+
 describe('wrapTelegram', () => {
   const echoHandler = wrapTelegram(async ({ text }) => text);
 
@@ -113,8 +209,45 @@ describe('wrapTelegram', () => {
     expect(await echoHandler(update, ctx.log)).toEqual(responseMethod);
   });
 
+  it('works with message & handlers passed in a map', async () => {
+    const handler = wrapTelegram({
+      message: ({ text }) => text,
+      inline: async ({ query }) => [{ photo_url: query, thumb_url: query }],
+    });
+    const inlineUpdate: Update = {
+      update_id: 2,
+      inline_query: {
+        id: 'abc',
+        query: 'query text',
+      } as InlineQuery,
+    };
+    expect(await handler(update, ctx.log)).toEqual(responseMethod);
+    expect(await handler(inlineUpdate, ctx.log)).toMatchInlineSnapshot(`
+      Object {
+        "inline_query_id": "abc",
+        "method": "answerInlineQuery",
+        "results": Array [
+          Object {
+            "id": "0",
+            "photo_url": "query text",
+            "thumb_url": "query text",
+            "type": "photo",
+          },
+        ],
+      }
+    `);
+  });
+
   it("ignores updates that don't contain a message", async () => {
     expect(await echoHandler({ update_id: 1 }, ctx.log)).toBeUndefined();
+  });
+
+  it('ignores requests that are not a telegram update', async () => {
+    expect(await echoHandler(undefined, ctx.log)).toBeUndefined();
+    expect(await echoHandler(false, ctx.log)).toBeUndefined();
+    expect(await echoHandler(1, ctx.log)).toBeUndefined();
+    expect(await echoHandler('', ctx.log)).toBeUndefined();
+    expect(await echoHandler({}, ctx.log)).toBeUndefined();
   });
 
   it('handles errors', async () => {

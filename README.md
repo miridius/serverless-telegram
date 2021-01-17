@@ -113,6 +113,24 @@ module.exports = createAzureTelegramWebhook(async (msg, log) => {
 
 `createAzureTelegramWebhook` is internally made of two parts: `wrapTelegram` and `wrapAzure`. To use this library for other platforms besides Azure, you can use `wrapTelegram` directly and write your own http wrapper. `wrapTelegram` takes the same arguments as `createAzureTelegramWebhook`, and will return a function that takes the JSON-parsed webhook body (i.e. a telegram update object) and returns the desired response body as a JS object (not stringified)
 
+## Handling Inline Queries
+
+Instead of passing `createAzureTelegramWebhook` a `MessageHandler` directly, you can pass it a `HandlerMap` object containing one or both of the keys `message` and `inline`. When updates arrive, they will be routed to the appropriate handler (or ignored if no handler of that type is defined):
+
+```ts
+interface HandlerMap {
+  message?: MessageHandler;
+  inline?: InlineHandler;
+}
+```
+
+An `InlineHandler` is a (usually async) function that takes 2 arguments, a [InlineQuery](https://core.telegram.org/bots/api#inlinequery) and a logger (the Azure [context.log object](https://docs.microsoft.com/en-us/azure/azure-functions/functions-reference-node?tabs=v2#write-trace-output-to-logs)). The inline handler can return any of the following data types:
+
+- Array of [InlineQueryResult](https://core.telegram.org/bots/api#inlinequeryresult) objects and/or `InlineResult` objects, which are the same as `InlineQueryResult` but without the `id` and `type` fields - the ID will the array index and the type will be inferred from the content **(so far only photos and videos are implemented)**
+- [AnswerInlineQuery](https://core.telegram.org/bots/api#answerinlinequery) object, in case you want to specify additional options for example `cache_time`. For convenience the inline_query_id can be left out and will be copied from the incoming query. The results array can contain both `InlineQueryResult` and `InlineResult` objects.
+- `HttpResponse` - in case greater control is needed you can send an [Azure http response object](https://docs.microsoft.com/en-us/azure/azure-functions/functions-bindings-http-webhook-trigger?tabs=javascript#example) and it will be passed through as is. It must contain at least one of the following keys: `status`, `body`, or `headers`.
+- `NoResponse` - any falsy value (or void) will signify that no reply should be sent.
+
 ## Development (via [TSDX](https://github.com/formium/tsdx))
 
 ### Initial Setup
