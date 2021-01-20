@@ -43,6 +43,13 @@ export interface ResponseObject {
   chat_id?: number;
 }
 
+const METHOD_MAPPING: Record<string, ResponseMethod['method']> = {
+  text: 'sendMessage',
+  sticker: 'sendSticker',
+  video: 'sendVideo',
+  media: 'sendMediaGroup',
+};
+
 export interface ResponseMethod extends ResponseObject {
   method: 'sendMessage' | 'sendSticker' | 'sendVideo' | 'sendMediaGroup';
   chat_id: number;
@@ -102,10 +109,9 @@ export const toMethod = (
   // allow users to create their own HTTP Response and just pass it through
   if (isHttpResponse(res)) return res;
   // convert the known telegram api methods
-  if (res.text) return { method: 'sendMessage', chat_id, ...res };
-  if (res.sticker) return { method: 'sendSticker', chat_id, ...res };
-  if (res.video) return { method: 'sendVideo', chat_id, ...res };
-  if (res.media) return { method: 'sendMediaGroup', chat_id, ...res };
+  for (const method of Object.keys(res).map((key) => METHOD_MAPPING[key])) {
+    if (method) return { method: method, chat_id, ...res };
+  }
   // Only ResponseMethod and NoResponse should make it here or there's a problem
   if (!(res as ResponseMethod).method && Object.keys(res).length) {
     throw new Error(`Could not parse response: ${JSON.stringify(res)}`);
