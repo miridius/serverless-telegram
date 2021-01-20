@@ -2,9 +2,6 @@ import type {
   AnswerInlineQueryOptions,
   InlineQuery,
   InlineQueryResult,
-  InlineQueryResultCachedVideo,
-  InlineQueryResultPhoto,
-  InlineQueryResultVideo,
   Message,
   Update,
 } from 'node-telegram-bot-api';
@@ -34,6 +31,7 @@ export type Response =
   | NoResponse;
 
 export interface ResponseObject {
+  // TODO: add the rest of these
   // exactly one of the following 4 keys should be included
   text?: string;
   sticker?: string;
@@ -43,6 +41,7 @@ export interface ResponseObject {
   chat_id?: number;
 }
 
+// TODO: add the rest of these
 const METHOD_MAPPING: Record<string, ResponseMethod['method']> = {
   text: 'sendMessage',
   sticker: 'sendSticker',
@@ -64,22 +63,22 @@ export type InlineHandler = (
 
 export type InlineResponse =
   | InlineResult[]
-  | InlineQueryResult[]
   | AnswerInlineQuery
+  | ResponseMethod
   | HttpResponse
   | NoResponse;
 
+export type InlineResult = Partial<InlineQueryResult>;
+
 // TODO: add the rest of these
-export type InlineResult = PhotoResult | VideoResult | CachedVideoResult;
-export type PhotoResult = Omit<InlineQueryResultPhoto, 'id' | 'type'>;
-export type VideoResult = Omit<InlineQueryResultVideo, 'id' | 'type'>;
-export type CachedVideoResult = Omit<
-  InlineQueryResultCachedVideo,
-  'id' | 'type'
->;
+const INLINE_TYPE_MAPPING: Record<string, InlineQueryResult['type']> = {
+  photo_url: 'photo',
+  video_url: 'video',
+  video_file_id: 'video',
+};
 
 export interface AnswerInlineQuery extends AnswerInlineQueryOptions {
-  results: InlineQueryResult[] | InlineResult[];
+  results: InlineResult[];
 }
 
 export interface AnswerInlineQueryMethod extends AnswerInlineQueryOptions {
@@ -110,7 +109,7 @@ export const toMethod = (
   if (isHttpResponse(res)) return res;
   // convert the known telegram api methods
   for (const method of Object.keys(res).map((key) => METHOD_MAPPING[key])) {
-    if (method) return { method: method, chat_id, ...res };
+    if (method) return { method, chat_id, ...res };
   }
   // Only ResponseMethod and NoResponse should make it here or there's a problem
   if (!(res as ResponseMethod).method && Object.keys(res).length) {
@@ -118,26 +117,21 @@ export const toMethod = (
   }
 };
 
-const isInlineQueryResult = (
-  r: InlineResult | InlineQueryResult,
-): r is InlineQueryResult => 'id' in r && 'type' in r;
-
-const isPhotoResult = (x: InlineResult): x is PhotoResult => 'photo_url' in x;
-const isVideo = (x: InlineResult): x is VideoResult | CachedVideoResult =>
-  'video_url' in x || 'video_file_id' in x;
-
-export const toInlineQueryResults = (
-  rs: (InlineResult | InlineQueryResult)[],
-): InlineQueryResult[] =>
-  rs.map((r: InlineResult | InlineQueryResult, i) => {
-    if (isInlineQueryResult(r)) return r;
-    const id = '' + i;
-    if (isPhotoResult(r)) return { type: 'photo', id, ...r };
-    if (isVideo(r)) return { type: 'video', id, ...r };
+const toInlineQueryResult = (r: InlineResult, i: number): InlineQueryResult => {
+  r.id ??= i.toString();
+  r.type ??= Object.keys(r)
+    .map((k) => INLINE_TYPE_MAPPING[k])
+    .filter((type) => type)[0];
+  if (!r.type) {
     throw new Error(
       `Could not determine InlineQueryResult type of ${JSON.stringify(r)}`,
     );
-  });
+  }
+  return r as InlineQueryResult;
+};
+
+export const toInlineQueryResults = (rs: InlineResult[]): InlineQueryResult[] =>
+  rs.map(toInlineQueryResult);
 
 const isAnswerInlineQuery = (r: any): r is AnswerInlineQuery =>
   typeof r === 'object' && 'results' in r && Array.isArray(r.results);
@@ -145,9 +139,10 @@ const isAnswerInlineQuery = (r: any): r is AnswerInlineQuery =>
 export const toInlineResponse = (
   r: InlineResponse,
   inline_query_id: string,
-): AnswerInlineQueryMethod | HttpResponse | void => {
+): AnswerInlineQueryMethod | ResponseMethod | HttpResponse | void => {
   if (!r) return;
   if (isHttpResponse(r)) return r;
+  if ('method' in r && 'chat_id' in r) return r;
   if (Array.isArray(r)) {
     return {
       method: 'answerInlineQuery',
@@ -174,10 +169,7 @@ export const wrapHandler = (
   handler: MessageHandler | HandlerMap,
 ): BodyHandler => {
   const hmap = typeof handler === 'function' ? { message: handler } : handler;
-  return async (
-    update: unknown,
-    log: Logger,
-  ): Promise<ResponseMethod | NoResponse> => {
+  return async (update: unknown, log: Logger) => {
     log.verbose('Bot Update:', update);
     if (!isUpdate(update)) return;
     const msg = getMessage(update);

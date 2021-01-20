@@ -184,6 +184,11 @@ describe('toInlineResponse', () => {
       }
     `);
   });
+  it('passes through ResponseMethods', () => {
+    expect(
+      toInlineResponse({ method: 'sendMessage', chat_id: 1 }, queryId),
+    ).toEqual({ method: 'sendMessage', chat_id: 1 });
+  });
   it('passes through HttpResponse and NoResponse', () => {
     expect(toInlineResponse({ status: 200 }, queryId)).toEqual({ status: 200 });
     expect(toInlineResponse(undefined, queryId)).toBeUndefined();
@@ -192,7 +197,7 @@ describe('toInlineResponse', () => {
     expect(() =>
       toInlineResponse([{}], queryId),
     ).toThrowErrorMatchingInlineSnapshot(
-      `"Could not determine InlineQueryResult type of {}"`,
+      `"Could not determine InlineQueryResult type of {\\"id\\":\\"0\\"}"`,
     );
     expect(() =>
       toInlineResponse({}, queryId),
