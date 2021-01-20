@@ -201,20 +201,17 @@ export const wrapErrorReporting = (
     try {
       return await handler(update, log);
     } catch (err) {
-      const message = `Bot Error while handling this update:
+      let message = `Bot Error while handling this update:
 ${JSON.stringify(update, null, 2)}`;
-      log.error(message);
-      if (errorChatId) {
-        // since the error won't be thrown we manually log its stack trace
-        log.error(err.stack);
-        return {
-          method: 'sendMessage',
-          chat_id: errorChatId,
-          text: `${message}\n\n${err.stack}`,
-        };
-      } else {
+      if (!errorChatId) {
+        // nowhere to send the report to so we just log & throw
+        log.error(message);
         throw err;
       }
+      // since the error won't be thrown we add the stack trace to the logs
+      message += `\n\n${err.stack}`;
+      log.error(message);
+      return { method: 'sendMessage', chat_id: errorChatId, text: message };
     }
   };
 };
