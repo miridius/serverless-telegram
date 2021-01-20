@@ -164,47 +164,58 @@ export const toInlineResponse = (
   );
 };
 
-export const wrapTelegram = (
+export const wrapHandler = (
   handler: MessageHandler | HandlerMap,
-  errorChatId?: number,
 ): BodyHandler => {
   const hmap = typeof handler === 'function' ? { message: handler } : handler;
   return async (
     update: unknown,
     log: Logger,
   ): Promise<ResponseMethod | NoResponse> => {
-    try {
-      log.verbose('Bot Update:', update);
-      if (!isUpdate(update)) return;
-      const msg = getMessage(update);
-      const inline = update.inline_query;
-      let res;
-      if (msg && hmap.message) {
-        res = toMethod(strToObj(await hmap.message(msg, log)), msg.chat.id);
-      } else if (inline && hmap.inline) {
-        res = toInlineResponse(await hmap.inline(inline, log), inline.id);
-      }
-      log.verbose('Bot Response:', res);
-      return res;
-    } catch (err) {
-      if (errorChatId) {
-        const text = `Bot Error while handling this update:
-${JSON.stringify(update, null, 2)}
+    log.verbose('Bot Update:', update);
+    if (!isUpdate(update)) return;
+    const msg = getMessage(update);
+    const inline = update.inline_query;
+    let res;
+    if (msg && hmap.message) {
+      res = toMethod(strToObj(await hmap.message(msg, log)), msg.chat.id);
+    } else if (inline && hmap.inline) {
+      res = toInlineResponse(await hmap.inline(inline, log), inline.id);
+    }
+    log.verbose('Bot Response:', res);
+    return res;
+  };
+};
 
-${err.stack}`;
-        log.error(text);
+export const wrapErrorReporting = (
+  handler: BodyHandler,
+  errorChatId?: number,
+): BodyHandler => {
+  return async (update: unknown, log: Logger) => {
+    try {
+      return await handler(update, log);
+    } catch (err) {
+      const message = `Bot Error while handling this update:
+${JSON.stringify(update, null, 2)}`;
+      log.error(message);
+      if (errorChatId) {
+        // since the error won't be thrown we manually log its stack trace
+        log.error(err.stack);
         return {
           method: 'sendMessage',
           chat_id: errorChatId,
-          text,
+          text: `${message}\n\n${err.stack}`,
         };
       } else {
-        log.error(`Bot Error while handling this update:
-${JSON.stringify(update, null, 2)}`);
         throw err;
       }
     }
   };
 };
+
+export const wrapTelegram = (
+  handler: MessageHandler | HandlerMap,
+  errorChatId?: number,
+): BodyHandler => wrapErrorReporting(wrapHandler(handler), errorChatId);
 
 export default wrapTelegram;
