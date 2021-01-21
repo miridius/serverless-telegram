@@ -2,6 +2,26 @@ import type {
   AnswerInlineQueryOptions,
   InlineQuery,
   InlineQueryResult,
+  InlineQueryResultArticle,
+  InlineQueryResultAudio,
+  InlineQueryResultCachedAudio,
+  InlineQueryResultCachedDocument,
+  InlineQueryResultCachedGif,
+  InlineQueryResultCachedMpeg4Gif,
+  InlineQueryResultCachedPhoto,
+  InlineQueryResultCachedSticker,
+  InlineQueryResultCachedVideo,
+  InlineQueryResultCachedVoice,
+  InlineQueryResultContact,
+  InlineQueryResultDocument,
+  InlineQueryResultGame,
+  InlineQueryResultGif,
+  InlineQueryResultLocation,
+  InlineQueryResultMpeg4Gif,
+  InlineQueryResultPhoto,
+  InlineQueryResultVenue,
+  InlineQueryResultVideo,
+  InlineQueryResultVoice,
   Message,
   Update,
 } from 'node-telegram-bot-api';
@@ -11,7 +31,7 @@ import {
   HttpResponse,
   isHttpResponse,
 } from './wrap-azure';
-export { Message, Update };
+export { InlineQuery, InlineQueryResult, Message, Update };
 
 export interface HandlerMap {
   message?: MessageHandler;
@@ -39,6 +59,8 @@ export interface ResponseObject {
   media?: string[];
   // OPTIONAL: redirect response to a different chat than the message came from
   chat_id?: number;
+  // OPTIONAL: any additional parameters for the telegram api method
+  [param: string]: any;
 }
 
 // TODO: add the rest of these
@@ -54,7 +76,7 @@ export interface ResponseMethod extends ResponseObject {
   chat_id: number;
 }
 
-export type NoResponse = void | null | undefined | false | '' | {};
+export type NoResponse = void | null | undefined | false | '' | 0;
 
 export type InlineHandler = (
   inline: InlineQuery,
@@ -68,13 +90,56 @@ export type InlineResponse =
   | HttpResponse
   | NoResponse;
 
-export type InlineResult = Partial<InlineQueryResult>;
+type TypeAndIdOptional<T extends InlineQueryResult> = {
+  type?: T['type'];
+  id?: T['id'];
+} & Omit<T, 'type' | 'id'>;
 
-// TODO: add the rest of these
-const INLINE_TYPE_MAPPING: Record<string, InlineQueryResult['type']> = {
-  photo_url: 'photo',
-  video_url: 'video',
+export type InlineResult =
+  | TypeAndIdOptional<InlineQueryResultCachedAudio>
+  | TypeAndIdOptional<InlineQueryResultCachedDocument>
+  | TypeAndIdOptional<InlineQueryResultCachedGif>
+  | TypeAndIdOptional<InlineQueryResultCachedMpeg4Gif>
+  | TypeAndIdOptional<InlineQueryResultCachedPhoto>
+  | TypeAndIdOptional<InlineQueryResultCachedSticker>
+  | TypeAndIdOptional<InlineQueryResultCachedVideo>
+  | TypeAndIdOptional<InlineQueryResultCachedVoice>
+  | InlineQueryResultArticle
+  | TypeAndIdOptional<InlineQueryResultAudio>
+  | TypeAndIdOptional<InlineQueryResultContact>
+  | TypeAndIdOptional<InlineQueryResultGame>
+  | TypeAndIdOptional<InlineQueryResultDocument>
+  | TypeAndIdOptional<InlineQueryResultGif>
+  | InlineQueryResultLocation
+  | TypeAndIdOptional<InlineQueryResultMpeg4Gif>
+  | TypeAndIdOptional<InlineQueryResultPhoto>
+  | TypeAndIdOptional<InlineQueryResultVenue>
+  | TypeAndIdOptional<InlineQueryResultVideo>
+  | TypeAndIdOptional<InlineQueryResultVoice>;
+
+type AllKeys<T> = T extends T ? keyof T : never;
+type Mapping<T, K extends keyof T> = { [param in AllKeys<T>]?: T[K] };
+
+const INLINE_TYPE_MAPPING: Mapping<InlineResult, 'type'> = {
+  audio_file_id: 'audio',
+  document_file_id: 'document',
+  gif_file_id: 'gif',
+  mpeg4_file_id: 'mpeg4_gif',
+  photo_file_id: 'photo',
+  sticker_file_id: 'sticker',
   video_file_id: 'video',
+  voice_file_id: 'voice',
+  url: 'article',
+  audio_url: 'audio',
+  phone_number: 'contact',
+  game_short_name: 'game',
+  document_url: 'document',
+  gif_url: 'gif',
+  mpeg4_url: 'mpeg4_gif',
+  photo_url: 'photo',
+  address: 'venue',
+  video_url: 'video',
+  voice_url: 'voice',
 };
 
 export interface AnswerInlineQuery extends AnswerInlineQueryOptions {
@@ -87,6 +152,12 @@ export interface AnswerInlineQueryMethod extends AnswerInlineQueryOptions {
   results: InlineQueryResult[];
 }
 
+export type UpdateResponse =
+  | ResponseMethod
+  | AnswerInlineQueryMethod
+  | HttpResponse
+  | NoResponse;
+
 export const isUpdate = (body: any): body is Partial<Update> =>
   body && typeof body === 'object' && 'update_id' in body;
 
@@ -96,80 +167,83 @@ export const getMessage = (update: Partial<Update>): Message | undefined =>
   update.channel_post ||
   update.edited_channel_post;
 
-export const strToObj = (
-  r?: Response,
-): ResponseObject | ResponseMethod | HttpResponse | undefined =>
-  typeof r === 'string' ? { text: r } : r ? r : undefined;
+export const strToObj = (res?: Response): Exclude<Response, string> =>
+  typeof res === 'string' ? { text: res } : res;
+
+const isNoResponse = (res: any): res is NoResponse => !res;
+
+const isResponseMethod = (
+  res: Exclude<Response | InlineResponse, NoResponse>,
+): res is ResponseMethod =>
+  typeof res === 'object' && 'method' in res && 'chat_id' in res;
+
+const passthroughResponse = (
+  res: Response | InlineResponse,
+): res is NoResponse | HttpResponse | ResponseMethod =>
+  isNoResponse(res) || isHttpResponse(res) || isResponseMethod(res);
+
+const getMethod = (res: ResponseObject): ResponseMethod['method'] | undefined =>
+  Object.keys(res)
+    .map((key) => METHOD_MAPPING[key])
+    .filter((method?) => method)[0];
 
 export const toMethod = (
-  res: ResponseObject | ResponseMethod | HttpResponse = {},
+  res: Exclude<Response, string>,
   chat_id: number,
-): ResponseMethod | HttpResponse | void => {
-  // allow users to create their own HTTP Response and just pass it through
-  if (isHttpResponse(res)) return res;
-  // convert the known telegram api methods
-  for (const method of Object.keys(res).map((key) => METHOD_MAPPING[key])) {
-    if (method) return { method, chat_id, ...res };
+): UpdateResponse => {
+  // fully formed HTTP/API responses (or NoResponse) are returned unchanged
+  if (passthroughResponse(res)) return res;
+  // determine the telegram api method from content (if not specified)
+  const method = res.method || getMethod(res);
+  if (!method) {
+    throw new Error(`Not a valid message response: ${JSON.stringify(res)}`);
   }
-  // Only ResponseMethod and NoResponse should make it here or there's a problem
-  if (!(res as ResponseMethod).method && Object.keys(res).length) {
-    throw new Error(`Could not parse response: ${JSON.stringify(res)}`);
-  }
+  return { method, chat_id, ...res };
 };
 
-const toInlineQueryResult = (r: InlineResult, i: number): InlineQueryResult => {
-  r.id ??= i.toString();
-  r.type ??= Object.keys(r)
-    .map((k) => INLINE_TYPE_MAPPING[k])
-    .filter((type) => type)[0];
-  if (!r.type) {
+const getInlineQueryResultType = (res: InlineResult): InlineResult['type'] =>
+  Object.keys(res)
+    .map((k) => INLINE_TYPE_MAPPING[k as keyof InlineResult])
+    .filter((type?) => type)[0];
+
+export const toInlineQueryResult = (
+  res: InlineResult,
+  i: number,
+): InlineQueryResult => {
+  const type = res.type || getInlineQueryResultType(res);
+  if (!type) {
+    throw new Error(`Not a valid inline result: ${JSON.stringify(res)}`);
+  }
+  return { id: i.toString(), type, ...res } as InlineQueryResult;
+};
+
+const isAnswerInlineQuery = (res: any): res is AnswerInlineQuery =>
+  typeof res === 'object' && Array.isArray(res.results);
+
+export const toAnswerInlineMethod = (
+  res: InlineResponse,
+  inline_query_id: string,
+): AnswerInlineQueryMethod | ResponseMethod | HttpResponse | NoResponse => {
+  if (passthroughResponse(res)) return res;
+  if (Array.isArray(res)) res = { results: res };
+  if (!isAnswerInlineQuery(res)) {
     throw new Error(
-      `Could not determine InlineQueryResult type of ${JSON.stringify(r)}`,
+      `Not a valid inline query response: ${JSON.stringify(res)}`,
     );
   }
-  return r as InlineQueryResult;
+  return {
+    method: 'answerInlineQuery',
+    inline_query_id,
+    ...res,
+    results: res.results.map(toInlineQueryResult),
+  };
 };
 
-export const toInlineQueryResults = (rs: InlineResult[]): InlineQueryResult[] =>
-  rs.map(toInlineQueryResult);
-
-const isAnswerInlineQuery = (r: any): r is AnswerInlineQuery =>
-  typeof r === 'object' && 'results' in r && Array.isArray(r.results);
-
-export const toInlineResponse = (
-  r: InlineResponse,
-  inline_query_id: string,
-): AnswerInlineQueryMethod | ResponseMethod | HttpResponse | void => {
-  if (!r) return;
-  if (isHttpResponse(r)) return r;
-  if ('method' in r && 'chat_id' in r) return r;
-  if (Array.isArray(r)) {
-    return {
-      method: 'answerInlineQuery',
-      inline_query_id,
-      results: toInlineQueryResults(r),
-    };
-  }
-  if (isAnswerInlineQuery(r)) {
-    return {
-      method: 'answerInlineQuery',
-      inline_query_id,
-      ...r,
-      results: toInlineQueryResults(r.results),
-    };
-  }
-  throw new Error(
-    `Response should either be an array of results or contain a results array: ${JSON.stringify(
-      r,
-    )}`,
-  );
-};
-
-export const wrapHandler = (
+export const toBodyHandler = (
   handler: MessageHandler | HandlerMap,
-): BodyHandler => {
+): BodyHandler<UpdateResponse> => {
   const hmap = typeof handler === 'function' ? { message: handler } : handler;
-  return async (update: unknown, log: Logger) => {
+  return async (update: unknown, log: Logger): Promise<UpdateResponse> => {
     log.verbose('Bot Update:', update);
     if (!isUpdate(update)) return;
     const msg = getMessage(update);
@@ -178,7 +252,7 @@ export const wrapHandler = (
     if (msg && hmap.message) {
       res = toMethod(strToObj(await hmap.message(msg, log)), msg.chat.id);
     } else if (inline && hmap.inline) {
-      res = toInlineResponse(await hmap.inline(inline, log), inline.id);
+      res = toAnswerInlineMethod(await hmap.inline(inline, log), inline.id);
     }
     log.verbose('Bot Response:', res);
     return res;
@@ -186,10 +260,10 @@ export const wrapHandler = (
 };
 
 export const wrapErrorReporting = (
-  handler: BodyHandler,
+  handler: BodyHandler<UpdateResponse>,
   errorChatId?: number,
-): BodyHandler => {
-  return async (update: unknown, log: Logger) => {
+): BodyHandler<UpdateResponse> => {
+  return async (update: unknown, log: Logger): Promise<UpdateResponse> => {
     try {
       return await handler(update, log);
     } catch (err) {
@@ -211,6 +285,7 @@ ${JSON.stringify(update, null, 2)}`;
 export const wrapTelegram = (
   handler: MessageHandler | HandlerMap,
   errorChatId?: number,
-): BodyHandler => wrapErrorReporting(wrapHandler(handler), errorChatId);
+): BodyHandler<UpdateResponse> =>
+  wrapErrorReporting(toBodyHandler(handler), errorChatId);
 
 export default wrapTelegram;
