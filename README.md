@@ -15,13 +15,13 @@ Your job is to write a handler function that takes a Message and optionally retu
 ## Getting Started
 
 1. Use the [official quickstart](https://docs.microsoft.com/en-us/azure/azure-functions/create-first-function-vs-code-node) to create a new Azure function using JavaScript or TypeScript. I recommend calling the function something like "telegram-webhook" or just "webhook" but it really doesn't matter.
-2. Install `serverless-telegram` as a dependency:
+1. Install `serverless-telegram` as a dependency:
 
    ```bash
    npm install serverless-telegram
    ```
 
-3. Replace the function's `index.js` or `index.ts` with the following:
+1. Replace the function's `index.js` or `index.ts` with the following:
 
    - JavaScript:
 
@@ -43,7 +43,7 @@ Your job is to write a handler function that takes a Message and optionally retu
      );
      ```
 
-4. Edit the function's `function.json` and set `authLevel` to `function` and `methods` to `["post"]`, for example:
+1. Edit the function's `function.json` and set `authLevel` to `function` and `methods` to `["post"]`, for example:
 
    ```json
    {
@@ -64,11 +64,11 @@ Your job is to write a handler function that takes a Message and optionally retu
    }
    ```
 
-5. Use the VSCode Azure extension to add a new Application Setting to your app: `NODE_ENV`=`production`
-6. Re-deploy the app (replace existing deployment)
-7. Copy the URL of your deployed function
-8. Create a new telegram bot and set its webhook to point to this URL
-9. Start a private chat with the bot and say "/start". It should reply with "You said: /start"
+1. Use the VSCode Azure extension to add a new Application Setting to your app: `NODE_ENV`=`production`
+1. Re-deploy the app (replace existing deployment)
+1. Copy the URL of your deployed function
+1. Create a new telegram bot and set its webhook to point to this URL
+1. Start a private chat with the bot and say "/start". It should reply with "You said: /start"
 
 ## Advanced Usage
 
