@@ -201,34 +201,29 @@ export const toMethod = (
   return { method, chat_id, ...res };
 };
 
-const getInlineQueryResultType = (res: InlineResult): InlineResult['type'] => {
-  let resultType =
-    res.type ||
-    Object.keys(res)
-      .map((k) => INLINE_TYPE_MAPPING[k as keyof InlineResult])
-      .filter((t?) => t)[0];
-  if (!resultType) {
-    // special cases where there's no unique mandatory parameter
-    if ('latitude' in res) {
-      resultType = 'location';
-    } else if ('title' in res && 'input_message_content' in res) {
-      resultType = 'article';
-    } else {
-      throw new Error(`Not a valid inline result: ${JSON.stringify(res)}`);
-    }
-  }
-  return resultType;
+// special cases where there's no unique mandatory parameter
+const resultTypeExceptions = (res: InlineResult): InlineResult['type'] => {
+  if ('latitude' in res) return 'location';
+  if ('title' in res && 'input_message_content' in res) return 'article';
+  return;
 };
+
+const getInlineQueryResultType = (res: InlineResult): InlineResult['type'] =>
+  res.type ||
+  Object.keys(res)
+    .map((k) => INLINE_TYPE_MAPPING[k as keyof InlineResult])
+    .filter((t?) => t)[0] ||
+  resultTypeExceptions(res);
 
 export const toInlineQueryResult = (
   res: InlineResult,
   i: number,
 ): InlineQueryResult => {
-  return {
-    id: i.toString(),
-    type: getInlineQueryResultType(res),
-    ...res,
-  } as InlineQueryResult;
+  const type = getInlineQueryResultType(res);
+  if (!type) {
+    throw new Error(`Not a valid inline result: ${JSON.stringify(res)}`);
+  }
+  return { id: i.toString(), type, ...res } as InlineQueryResult;
 };
 
 const isAnswerInlineQuery = (res: any): res is AnswerInlineQuery =>
