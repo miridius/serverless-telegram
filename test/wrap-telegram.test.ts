@@ -1,10 +1,4 @@
-import {
-  Chat,
-  InlineQuery,
-  InlineQueryResult,
-  Message,
-  Update,
-} from 'node-telegram-bot-api';
+import { Chat, InlineQuery, Message, Update } from 'node-telegram-bot-api';
 import { HttpResponse } from '../src/wrap-azure';
 import wrapTelegram, {
   getMessage,
@@ -119,7 +113,7 @@ describe('toMethod', () => {
 
 describe('toAnswerInlineMethod', () => {
   const queryId = 'q';
-  const results: (InlineResult | InlineQueryResult)[] = [
+  const results: InlineResult[] = [
     {
       type: 'audio',
       id: 'audio-id',
@@ -127,7 +121,8 @@ describe('toAnswerInlineMethod', () => {
       title: 'baz',
     },
     { photo_url: 'photo URL', thumb_url: 'thumb URL' },
-    { video_file_id: 'video file ID', title: 'video title' },
+    { latitude: 123, longitude: 456, title: 'home' },
+    { title: 'article title', input_message_content: {} },
   ];
   it('works with results array', () => {
     expect(toAnswerInlineMethod(results, queryId)).toMatchInlineSnapshot(`
@@ -149,41 +144,29 @@ describe('toAnswerInlineMethod', () => {
           },
           Object {
             "id": "2",
-            "title": "video title",
-            "type": "video",
-            "video_file_id": "video file ID",
+            "latitude": 123,
+            "longitude": 456,
+            "title": "home",
+            "type": "location",
+          },
+          Object {
+            "id": "3",
+            "input_message_content": Object {},
+            "title": "article title",
+            "type": "article",
           },
         ],
       }
     `);
   });
   it('works with answerInlineQuery options', () => {
-    expect(toAnswerInlineMethod({ results, cache_time: 100000 }, queryId))
+    expect(toAnswerInlineMethod({ results: [], cache_time: 100000 }, queryId))
       .toMatchInlineSnapshot(`
       Object {
         "cache_time": 100000,
         "inline_query_id": "q",
         "method": "answerInlineQuery",
-        "results": Array [
-          Object {
-            "audio_url": "foo://bar",
-            "id": "audio-id",
-            "title": "baz",
-            "type": "audio",
-          },
-          Object {
-            "id": "1",
-            "photo_url": "photo URL",
-            "thumb_url": "thumb URL",
-            "type": "photo",
-          },
-          Object {
-            "id": "2",
-            "title": "video title",
-            "type": "video",
-            "video_file_id": "video file ID",
-          },
-        ],
+        "results": Array [],
       }
     `);
   });

@@ -104,13 +104,13 @@ export type InlineResult =
   | TypeAndIdOptional<InlineQueryResultCachedSticker>
   | TypeAndIdOptional<InlineQueryResultCachedVideo>
   | TypeAndIdOptional<InlineQueryResultCachedVoice>
-  | InlineQueryResultArticle
+  | TypeAndIdOptional<InlineQueryResultArticle>
   | TypeAndIdOptional<InlineQueryResultAudio>
   | TypeAndIdOptional<InlineQueryResultContact>
   | TypeAndIdOptional<InlineQueryResultGame>
   | TypeAndIdOptional<InlineQueryResultDocument>
   | TypeAndIdOptional<InlineQueryResultGif>
-  | InlineQueryResultLocation
+  | TypeAndIdOptional<InlineQueryResultLocation>
   | TypeAndIdOptional<InlineQueryResultMpeg4Gif>
   | TypeAndIdOptional<InlineQueryResultPhoto>
   | TypeAndIdOptional<InlineQueryResultVenue>
@@ -201,20 +201,34 @@ export const toMethod = (
   return { method, chat_id, ...res };
 };
 
-const getInlineQueryResultType = (res: InlineResult): InlineResult['type'] =>
-  Object.keys(res)
-    .map((k) => INLINE_TYPE_MAPPING[k as keyof InlineResult])
-    .filter((type?) => type)[0];
+const getInlineQueryResultType = (res: InlineResult): InlineResult['type'] => {
+  let resultType =
+    res.type ||
+    Object.keys(res)
+      .map((k) => INLINE_TYPE_MAPPING[k as keyof InlineResult])
+      .filter((t?) => t)[0];
+  if (!resultType) {
+    // special cases where there's no unique mandatory parameter
+    if ('latitude' in res) {
+      resultType = 'location';
+    } else if ('title' in res && 'input_message_content' in res) {
+      resultType = 'article';
+    } else {
+      throw new Error(`Not a valid inline result: ${JSON.stringify(res)}`);
+    }
+  }
+  return resultType;
+};
 
 export const toInlineQueryResult = (
   res: InlineResult,
   i: number,
 ): InlineQueryResult => {
-  const type = res.type || getInlineQueryResultType(res);
-  if (!type) {
-    throw new Error(`Not a valid inline result: ${JSON.stringify(res)}`);
-  }
-  return { id: i.toString(), type, ...res } as InlineQueryResult;
+  return {
+    id: i.toString(),
+    type: getInlineQueryResultType(res),
+    ...res,
+  } as InlineQueryResult;
 };
 
 const isAnswerInlineQuery = (res: any): res is AnswerInlineQuery =>
