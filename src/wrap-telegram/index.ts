@@ -1,27 +1,21 @@
 import type {
-  AnswerInlineQueryOptions,
+  AnswerInlineQuery,
+  AnswerInlineQueryMethod,
+  HandlerMap,
+  InlineHandler,
+  InlineResponse,
+  InlineResult,
+  Mapping,
+  MessageHandler,
+  NoResponse,
+  Response,
+  ResponseMethod,
+  ResponseObject,
+  UpdateResponse,
+} from './types';
+import type {
   InlineQuery,
   InlineQueryResult,
-  InlineQueryResultArticle,
-  InlineQueryResultAudio,
-  InlineQueryResultCachedAudio,
-  InlineQueryResultCachedDocument,
-  InlineQueryResultCachedGif,
-  InlineQueryResultCachedMpeg4Gif,
-  InlineQueryResultCachedPhoto,
-  InlineQueryResultCachedSticker,
-  InlineQueryResultCachedVideo,
-  InlineQueryResultCachedVoice,
-  InlineQueryResultContact,
-  InlineQueryResultDocument,
-  InlineQueryResultGame,
-  InlineQueryResultGif,
-  InlineQueryResultLocation,
-  InlineQueryResultMpeg4Gif,
-  InlineQueryResultPhoto,
-  InlineQueryResultVenue,
-  InlineQueryResultVideo,
-  InlineQueryResultVoice,
   Message,
   Update,
 } from 'node-telegram-bot-api';
@@ -30,38 +24,7 @@ import {
   Logger,
   HttpResponse,
   isHttpResponse,
-} from './wrap-azure';
-export { InlineQuery, InlineQueryResult, Message, Update };
-
-export interface HandlerMap {
-  message?: MessageHandler;
-  inline?: InlineHandler;
-}
-
-export type MessageHandler = (
-  message: Message,
-  log: Logger,
-) => Promise<Response> | Response;
-
-export type Response =
-  | string
-  | ResponseObject
-  | ResponseMethod
-  | HttpResponse
-  | NoResponse;
-
-export interface ResponseObject {
-  // TODO: add the rest of these
-  // exactly one of the following 4 keys should be included
-  text?: string;
-  sticker?: string;
-  video?: string;
-  media?: string[];
-  // OPTIONAL: redirect response to a different chat than the message came from
-  chat_id?: number;
-  // OPTIONAL: any additional parameters for the telegram api method
-  [param: string]: any;
-}
+} from '../wrap-azure';
 
 // TODO: add the rest of these
 const METHOD_MAPPING: Record<string, ResponseMethod['method']> = {
@@ -70,55 +33,6 @@ const METHOD_MAPPING: Record<string, ResponseMethod['method']> = {
   video: 'sendVideo',
   media: 'sendMediaGroup',
 };
-
-export interface ResponseMethod extends ResponseObject {
-  method: 'sendMessage' | 'sendSticker' | 'sendVideo' | 'sendMediaGroup';
-  chat_id: number;
-}
-
-export type NoResponse = void | null | undefined | false | '' | 0;
-
-export type InlineHandler = (
-  inline: InlineQuery,
-  log: Logger,
-) => Promise<InlineResponse> | InlineResponse;
-
-export type InlineResponse =
-  | InlineResult[]
-  | AnswerInlineQuery
-  | ResponseMethod
-  | HttpResponse
-  | NoResponse;
-
-type TypeAndIdOptional<T extends InlineQueryResult> = {
-  type?: T['type'];
-  id?: T['id'];
-} & Omit<T, 'type' | 'id'>;
-
-export type InlineResult =
-  | TypeAndIdOptional<InlineQueryResultCachedAudio>
-  | TypeAndIdOptional<InlineQueryResultCachedDocument>
-  | TypeAndIdOptional<InlineQueryResultCachedGif>
-  | TypeAndIdOptional<InlineQueryResultCachedMpeg4Gif>
-  | TypeAndIdOptional<InlineQueryResultCachedPhoto>
-  | TypeAndIdOptional<InlineQueryResultCachedSticker>
-  | TypeAndIdOptional<InlineQueryResultCachedVideo>
-  | TypeAndIdOptional<InlineQueryResultCachedVoice>
-  | TypeAndIdOptional<InlineQueryResultArticle>
-  | TypeAndIdOptional<InlineQueryResultAudio>
-  | TypeAndIdOptional<InlineQueryResultContact>
-  | TypeAndIdOptional<InlineQueryResultGame>
-  | TypeAndIdOptional<InlineQueryResultDocument>
-  | TypeAndIdOptional<InlineQueryResultGif>
-  | TypeAndIdOptional<InlineQueryResultLocation>
-  | TypeAndIdOptional<InlineQueryResultMpeg4Gif>
-  | TypeAndIdOptional<InlineQueryResultPhoto>
-  | TypeAndIdOptional<InlineQueryResultVenue>
-  | TypeAndIdOptional<InlineQueryResultVideo>
-  | TypeAndIdOptional<InlineQueryResultVoice>;
-
-type AllKeys<T> = T extends T ? keyof T : never;
-type Mapping<T, K extends keyof T> = { [param in AllKeys<T>]?: T[K] };
 
 const INLINE_TYPE_MAPPING: Mapping<InlineResult, 'type'> = {
   audio_file_id: 'audio',
@@ -141,22 +55,6 @@ const INLINE_TYPE_MAPPING: Mapping<InlineResult, 'type'> = {
   video_url: 'video',
   voice_url: 'voice',
 };
-
-export interface AnswerInlineQuery extends AnswerInlineQueryOptions {
-  results: InlineResult[];
-}
-
-export interface AnswerInlineQueryMethod extends AnswerInlineQueryOptions {
-  method: 'answerInlineQuery';
-  inline_query_id: string;
-  results: InlineQueryResult[];
-}
-
-export type UpdateResponse =
-  | ResponseMethod
-  | AnswerInlineQueryMethod
-  | HttpResponse
-  | NoResponse;
 
 export const isUpdate = (body: any): body is Partial<Update> =>
   body && typeof body === 'object' && 'update_id' in body;
@@ -298,3 +196,21 @@ export const wrapTelegram = (
   wrapErrorReporting(toBodyHandler(handler), errorChatId);
 
 export default wrapTelegram;
+
+export type {
+  AnswerInlineQuery,
+  HandlerMap,
+  InlineHandler,
+  InlineQuery,
+  InlineQueryResult,
+  InlineResponse,
+  InlineResult,
+  Message,
+  MessageHandler,
+  NoResponse,
+  Response,
+  ResponseMethod,
+  ResponseObject,
+  Update,
+  UpdateResponse,
+};
