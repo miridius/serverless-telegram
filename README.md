@@ -2,9 +2,9 @@
 
 [![npm version](https://badge.fury.io/js/serverless-telegram.svg)](https://badge.fury.io/js/serverless-telegram)
 [![Known Vulnerabilities](https://snyk.io/test/github/miridius/serverless-telegram/badge.svg)](https://snyk.io/test/github/miridius/serverless-telegram)
+[![GitHub license](https://img.shields.io/github/license/miridius/serverless-telegram)](https://github.com/miridius/serverless-telegram/blob/master/LICENSE)
 [![GitHub CI](https://github.com/miridius/serverless-telegram/workflows/CI/badge.svg)](https://github.com/miridius/serverless-telegram/actions?query=workflow%3ACI)
 [![Coverage](https://api.codeclimate.com/v1/badges/8a8ce85bd1e8605d3732/test_coverage)](https://codeclimate.com/github/miridius/serverless-telegram/test_coverage)
-[![Maintainability](https://api.codeclimate.com/v1/badges/8a8ce85bd1e8605d3732/maintainability)](https://codeclimate.com/github/miridius/serverless-telegram/maintainability)
 
 A simple library to remove some of the repetitive work in creating servlerless telegram bots.
 
