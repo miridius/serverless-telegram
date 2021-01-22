@@ -1,10 +1,4 @@
-import {
-  Chat,
-  InlineQuery,
-  InlineQueryResult,
-  Message,
-  Update,
-} from 'node-telegram-bot-api';
+import { Chat, InlineQuery, Message, Update } from 'node-telegram-bot-api';
 import { HttpResponse } from '../src/wrap-azure';
 import wrapTelegram, {
   getMessage,
@@ -13,8 +7,9 @@ import wrapTelegram, {
   ResponseMethod,
   toMethod,
   ResponseObject,
-  toInlineResponse,
+  toAnswerInlineMethod,
   InlineResult,
+  InlineResponse,
 } from '../src/wrap-telegram';
 import ctx from './defaultContext';
 
@@ -105,8 +100,10 @@ describe('toMethod', () => {
     expect(toMethod({ media }, chat_id)).toEqual(mediaResponse);
   });
   it('throws an error for unknown responses', () => {
-    expect(() => toMethod({ foo: 'bar' } as ResponseObject, chat_id)).toThrow(
-      'Could not parse response: {"foo":"bar"}',
+    expect(() =>
+      toMethod({ foo: 'bar' } as ResponseObject, chat_id),
+    ).toThrowErrorMatchingInlineSnapshot(
+      `"Not a valid message response: {\\"foo\\":\\"bar\\"}"`,
     );
   });
   it('sends no response', () => {
@@ -114,9 +111,9 @@ describe('toMethod', () => {
   });
 });
 
-describe('toInlineResponse', () => {
+describe('toAnswerInlineMethod', () => {
   const queryId = 'q';
-  const results: (InlineResult | InlineQueryResult)[] = [
+  const results: InlineResult[] = [
     {
       type: 'audio',
       id: 'audio-id',
@@ -124,10 +121,11 @@ describe('toInlineResponse', () => {
       title: 'baz',
     },
     { photo_url: 'photo URL', thumb_url: 'thumb URL' },
-    { video_file_id: 'video file ID', title: 'video title' },
+    { latitude: 123, longitude: 456, title: 'home' },
+    { title: 'article title', input_message_content: {} },
   ];
   it('works with results array', () => {
-    expect(toInlineResponse(results, queryId)).toMatchInlineSnapshot(`
+    expect(toAnswerInlineMethod(results, queryId)).toMatchInlineSnapshot(`
       Object {
         "inline_query_id": "q",
         "method": "answerInlineQuery",
@@ -146,58 +144,51 @@ describe('toInlineResponse', () => {
           },
           Object {
             "id": "2",
-            "title": "video title",
-            "type": "video",
-            "video_file_id": "video file ID",
+            "latitude": 123,
+            "longitude": 456,
+            "title": "home",
+            "type": "location",
+          },
+          Object {
+            "id": "3",
+            "input_message_content": Object {},
+            "title": "article title",
+            "type": "article",
           },
         ],
       }
     `);
   });
   it('works with answerInlineQuery options', () => {
-    expect(toInlineResponse({ results, cache_time: 100000 }, queryId))
+    expect(toAnswerInlineMethod({ results: [], cache_time: 100000 }, queryId))
       .toMatchInlineSnapshot(`
       Object {
         "cache_time": 100000,
         "inline_query_id": "q",
         "method": "answerInlineQuery",
-        "results": Array [
-          Object {
-            "audio_url": "foo://bar",
-            "id": "audio-id",
-            "title": "baz",
-            "type": "audio",
-          },
-          Object {
-            "id": "1",
-            "photo_url": "photo URL",
-            "thumb_url": "thumb URL",
-            "type": "photo",
-          },
-          Object {
-            "id": "2",
-            "title": "video title",
-            "type": "video",
-            "video_file_id": "video file ID",
-          },
-        ],
+        "results": Array [],
       }
     `);
   });
+  it('passes through ResponseMethods', () => {
+    expect(
+      toAnswerInlineMethod({ method: 'sendMessage', chat_id: 1 }, queryId),
+    ).toEqual({ method: 'sendMessage', chat_id: 1 });
+  });
   it('passes through HttpResponse and NoResponse', () => {
-    expect(toInlineResponse({ status: 200 }, queryId)).toEqual({ status: 200 });
-    expect(toInlineResponse(undefined, queryId)).toBeUndefined();
+    expect(toAnswerInlineMethod({ status: 200 }, queryId)).toEqual({
+      status: 200,
+    });
+    expect(toAnswerInlineMethod(undefined, queryId)).toBeUndefined();
   });
   it('throws errors for unknown response objects', () => {
     expect(() =>
-      toInlineResponse([{}], queryId),
-    ).toThrowErrorMatchingInlineSnapshot(
-      `"Could not determine InlineQueryResult type of {}"`,
-    );
+      toAnswerInlineMethod([{}] as InlineResponse, queryId),
+    ).toThrowErrorMatchingInlineSnapshot(`"Not a valid inline result: {}"`);
     expect(() =>
-      toInlineResponse({}, queryId),
+      toAnswerInlineMethod({}, queryId),
     ).toThrowErrorMatchingInlineSnapshot(
-      `"Response should either be an array of results or contain a results array: {}"`,
+      `"Not a valid inline query response: {}"`,
     );
   });
 });

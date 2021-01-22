@@ -3,7 +3,8 @@
 [![npm version](https://badge.fury.io/js/serverless-telegram.svg)](https://badge.fury.io/js/serverless-telegram)
 [![Known Vulnerabilities](https://snyk.io/test/github/miridius/serverless-telegram/badge.svg)](https://snyk.io/test/github/miridius/serverless-telegram)
 [![GitHub CI](https://github.com/miridius/serverless-telegram/workflows/CI/badge.svg)](https://github.com/miridius/serverless-telegram/actions?query=workflow%3ACI)
-[![Coverage Status](https://coveralls.io/repos/github/miridius/serverless-telegram/badge.svg?branch=master)](https://coveralls.io/github/miridius/serverless-telegram?branch=master)
+[![Coverage](https://api.codeclimate.com/v1/badges/8a8ce85bd1e8605d3732/test_coverage)](https://codeclimate.com/github/miridius/serverless-telegram/test_coverage)
+[![Maintainability](https://api.codeclimate.com/v1/badges/8a8ce85bd1e8605d3732/maintainability)](https://codeclimate.com/github/miridius/serverless-telegram/maintainability)
 
 A simple library to remove some of the repetitive work in creating servlerless telegram bots.
 
@@ -14,13 +15,13 @@ Your job is to write a handler function that takes a Message and optionally retu
 ## Getting Started
 
 1. Use the [official quickstart](https://docs.microsoft.com/en-us/azure/azure-functions/create-first-function-vs-code-node) to create a new Azure function using JavaScript or TypeScript. I recommend calling the function something like "telegram-webhook" or just "webhook" but it really doesn't matter.
-2. Install `serverless-telegram` as a dependency:
+1. Install `serverless-telegram` as a dependency:
 
    ```bash
    npm install serverless-telegram
    ```
 
-3. Replace the function's `index.js` or `index.ts` with the following:
+1. Replace the function's `index.js` or `index.ts` with the following:
 
    - JavaScript:
 
@@ -42,7 +43,7 @@ Your job is to write a handler function that takes a Message and optionally retu
      );
      ```
 
-4. Edit the function's `function.json` and set `authLevel` to `function` and `methods` to `["post"]`, for example:
+1. Edit the function's `function.json` and set `authLevel` to `function` and `methods` to `["post"]`, for example:
 
    ```json
    {
@@ -63,11 +64,11 @@ Your job is to write a handler function that takes a Message and optionally retu
    }
    ```
 
-5. Use the VSCode Azure extension to add a new Application Setting to your app: `NODE_ENV`=`production`
-6. Re-deploy the app (replace existing deployment)
-7. Copy the URL of your deployed function
-8. Create a new telegram bot and set its webhook to point to this URL
-9. Start a private chat with the bot and say "/start". It should reply with "You said: /start"
+1. Use the VSCode Azure extension to add a new Application Setting to your app: `NODE_ENV`=`production`
+1. Re-deploy the app (replace existing deployment)
+1. Copy the URL of your deployed function
+1. Create a new telegram bot and set its webhook to point to this URL
+1. Start a private chat with the bot and say "/start". It should reply with "You said: /start"
 
 ## Advanced Usage
 
@@ -131,8 +132,9 @@ interface HandlerMap {
 
 An `InlineHandler` is a (usually async) function that takes 2 arguments, a [InlineQuery](https://core.telegram.org/bots/api#inlinequery) and a logger (the Azure [context.log object](https://docs.microsoft.com/en-us/azure/azure-functions/functions-reference-node?tabs=v2#write-trace-output-to-logs)). The inline handler can return any of the following data types:
 
-- Array of [InlineQueryResult](https://core.telegram.org/bots/api#inlinequeryresult) objects and/or `InlineResult` objects, which are the same as `InlineQueryResult` but without the `id` and `type` fields - the ID will the array index and the type will be inferred from the content **(so far only photos and videos are implemented)**
-- [AnswerInlineQuery](https://core.telegram.org/bots/api#answerinlinequery) object, in case you want to specify additional options for example `cache_time`. For convenience the inline_query_id can be left out and will be copied from the incoming query. The results array can contain both `InlineQueryResult` and `InlineResult` objects.
+- Array of `InlineResult` objects, which are just like [InlineQueryResult](https://core.telegram.org/bots/api#inlinequeryresult)s but for convenience the `id` and `type` fields are optional - when not specified the ID will the array index and the type will be inferred automatically from the other parameters.
+- [AnswerInlineQuery](https://core.telegram.org/bots/api#answerinlinequery) object, in case you want to specify additional options for example `cache_time`. For convenience the inline_query_id can be left out and will be copied from the incoming query. The results array can contain `InlineResult` objects (i.e. the `id` and `type` fields are optional).
+- `ResponseMethod` - Instead of answering the inline query, you can send any of the telegram bot API [methods](https://core.telegram.org/bots/api#available-methods). This must be an object with the `method` key set to the method name (e.g. 'sendMessage'), along with any other desired parameters. Note that since inline queries do not come from a chat, `chat_id` cannot be automatically set and must be provided by you if required
 - `HttpResponse` - in case greater control is needed you can send an [Azure http response object](https://docs.microsoft.com/en-us/azure/azure-functions/functions-bindings-http-webhook-trigger?tabs=javascript#example) and it will be passed through as is. It must contain at least one of the following keys: `status`, `body`, or `headers`.
 - `NoResponse` - any falsy value (or void) will signify that no reply should be sent.
 

@@ -1,5 +1,8 @@
 name: CI
-on: [push, pull_request]
+on:
+  push: { branches: [master] }
+  pull_request: { branches: [master] }
+
 jobs:
   build:
     name: Build, lint, and test
@@ -31,7 +34,8 @@ jobs:
       - name: Build
         run: yarn build
 
-      - name: Coveralls
-        uses: coverallsapp/github-action@master
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Code Climate
+        if: startsWith(matrix.os, 'ubuntu')
+        uses: paambaati/codeclimate-action@v2.7.5
+        env:
+          CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}

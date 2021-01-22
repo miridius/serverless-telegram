@@ -1,7 +1,10 @@
 import { AzureFunction, Context, HttpRequest, Logger } from '@azure/functions';
 export { AzureFunction, Context, HttpRequest, Logger };
 
-export type BodyHandler = (body: unknown, log: Logger) => Promise<any | void>;
+export type BodyHandler<T = any> = (
+  body: unknown,
+  log: Logger,
+) => T | Promise<T>;
 
 export interface HttpResponse {
   status?: number;

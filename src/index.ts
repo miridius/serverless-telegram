@@ -1,19 +1,27 @@
-import wrapTelegram, { MessageHandler } from './wrap-telegram';
+import wrapTelegram, { MessageHandler, HandlerMap } from './wrap-telegram';
 import wrapAzure, { AzureFunction } from './wrap-azure';
 
 // re-exports
 export { wrapAzure, wrapTelegram };
 export type {
+  HandlerMap,
+  MessageHandler,
   Update,
   Message,
   Response,
-  MessageHandler,
+  ResponseObject,
+  ResponseMethod,
+  NoResponse,
   InlineHandler,
-  HandlerMap,
+  InlineQuery,
+  InlineResult,
+  InlineQueryResult,
+  AnswerInlineQuery,
 } from './wrap-telegram';
 export type {
   AzureFunction,
   HttpRequest,
+  HttpResponse,
   Context,
   Logger,
   BodyHandler,
@@ -21,7 +29,7 @@ export type {
 
 // single combined wrapper for convenience
 export const createAzureTelegramWebhook = (
-  handler: MessageHandler,
+  handler: MessageHandler | HandlerMap,
   errorChatId?: number,
 ): AzureFunction => wrapAzure(wrapTelegram(handler, errorChatId));
 
