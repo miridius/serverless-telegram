@@ -4,27 +4,29 @@ import wrapAzure, { AzureFunction } from './wrap-azure';
 // re-exports
 export { wrapAzure, wrapTelegram };
 export type {
+  AnswerInlineQuery,
+  Chat,
   HandlerMap,
-  MessageHandler,
-  Update,
-  Message,
-  Response,
-  ResponseObject,
-  ResponseMethod,
-  NoResponse,
   InlineHandler,
   InlineQuery,
-  InlineResult,
   InlineQueryResult,
-  AnswerInlineQuery,
+  InlineResult,
+  Message,
+  MessageHandler,
+  NoResponse,
+  Response,
+  ResponseMethod,
+  ResponseObject,
+  Update,
+  User,
 } from './wrap-telegram';
 export type {
   AzureFunction,
+  BodyHandler,
+  Context,
   HttpRequest,
   HttpResponse,
-  Context,
   Logger,
-  BodyHandler,
 } from './wrap-azure';
 
 // single combined wrapper for convenience

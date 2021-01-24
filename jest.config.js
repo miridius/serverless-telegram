@@ -7,4 +7,6 @@ module.exports = {
   maxWorkers: 1,
   // show code coverage on every test run
   collectCoverage: true,
+  // make sure to include coverage from all files even those not tested at all
+  collectCoverageFrom: ['src/**/*.{ts,js}'],
 };

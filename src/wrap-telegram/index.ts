@@ -14,10 +14,12 @@ import type {
   UpdateResponse,
 } from './types';
 import type {
+  Chat,
   InlineQuery,
   InlineQueryResult,
   Message,
   Update,
+  User,
 } from 'node-telegram-bot-api';
 import {
   BodyHandler,
@@ -199,6 +201,7 @@ export default wrapTelegram;
 
 export type {
   AnswerInlineQuery,
+  Chat,
   HandlerMap,
   InlineHandler,
   InlineQuery,
@@ -213,4 +216,5 @@ export type {
   ResponseObject,
   Update,
   UpdateResponse,
+  User,
 };
