@@ -44,20 +44,47 @@ export type Response =
   | NoResponse;
 
 export interface ResponseObject {
-  // TODO: add the rest of these
-  // exactly one of the following 4 keys should be included
+  // one of the following keys should be included
   text?: string;
-  sticker?: string;
+  photo?: string;
+  audio?: string;
+  document?: string;
   video?: string;
+  animation?: string;
+  voice?: string;
+  video_note?: string;
   media?: string[];
-  // OPTIONAL: redirect response to a different chat than the message came from
-  chat_id?: number;
+  address?: string;
+  latitude?: number;
+  phone_number?: string;
+  question?: string;
+  emoji?: string;
+  action?: string;
+  sticker?: string;
   // OPTIONAL: any additional parameters for the telegram api method
   [param: string]: any;
+  // OPTIONAL: redirect response to a different chat than the message came from
+  chat_id?: number;
 }
 
 export interface ResponseMethod extends ResponseObject {
-  method: 'sendMessage' | 'sendSticker' | 'sendVideo' | 'sendMediaGroup';
+  method:
+    | 'sendMessage'
+    | 'sendPhoto'
+    | 'sendAudio'
+    | 'sendDocument'
+    | 'sendVideo'
+    | 'sendAnimation'
+    | 'sendVoice'
+    | 'sendVideoNote'
+    | 'sendMediaGroup'
+    | 'sendVenue'
+    | 'sendLocation'
+    | 'sendContact'
+    | 'sendPoll'
+    | 'sendDice'
+    | 'sendChatAction'
+    | 'sendSticker';
   chat_id: number;
 }
 

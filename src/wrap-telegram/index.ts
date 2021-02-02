@@ -28,12 +28,23 @@ import {
   isHttpResponse,
 } from '../wrap-azure';
 
-// TODO: add the rest of these
-const METHOD_MAPPING: Record<string, ResponseMethod['method']> = {
+const METHOD_MAPPING: Record<keyof ResponseObject, ResponseMethod['method']> = {
   text: 'sendMessage',
-  sticker: 'sendSticker',
+  photo: 'sendPhoto',
+  audio: 'sendAudio',
+  document: 'sendDocument',
   video: 'sendVideo',
+  animation: 'sendAnimation',
+  voice: 'sendVoice',
+  video_note: 'sendVideoNote',
   media: 'sendMediaGroup',
+  address: 'sendVenue',
+  latitude: 'sendLocation',
+  phone_number: 'sendContact',
+  question: 'sendPoll',
+  emoji: 'sendDice',
+  action: 'sendChatAction',
+  sticker: 'sendSticker',
 };
 
 const INLINE_TYPE_MAPPING: Mapping<InlineResult, 'type'> = {

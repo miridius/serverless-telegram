@@ -77,19 +77,11 @@ Your job is to write a handler function that takes a Message and optionally retu
 The message handler can return any of the following data types:
 
 - `string` - will send a text reply back to the same chat the message came from
-- `ResponseObject` - an object representing a richer response type:
+- `ResponseObject` - an object representing a richer response type. Any of the telegram bot API `send*` [methods](https://core.telegram.org/bots/api#available-methods) are supported (for example `sendPhoto`, `sendMessage`, etc.), but you don't need to specify the chat_id or the method name. Some examples:
 
-  ```ts
-  interface ResponseObject {
-    // *exactly one* of the following 4 keys should be included
-    text?: string;
-    sticker?: string; // URL or file ID
-    video?: string; // URL or file ID
-    media?: string[]; // Array of URLs or file IDs
-    // OPTIONAL: redirect response to a different chat than the message came from
-    chat_id?: number;
-  }
-  ```
+  - `{ photo: 'https://example.com/image.png' }` - send a photo from a URL
+  - `{ text: 'hello there' }` - send a message (equivalent to returning 'hello there')
+  - `{ video: '<video file ID>' }` - resend a video for which you know the file ID
 
 - `ResponseMethod` - Any of the telegram bot API [methods](https://core.telegram.org/bots/api#available-methods). This must be an object with the `method` key set to the method name (e.g. 'sendMessage'), along with any other desired parameters. If `chat_id` is not specified, it will automatically be set to be the same as that of the incoming message
 - `HttpResponse` - in case greater control is needed you can send an [Azure http response object](https://docs.microsoft.com/en-us/azure/azure-functions/functions-bindings-http-webhook-trigger?tabs=javascript#example) and it will be passed through as is. It must contain at least one of the following keys: `status`, `body`, or `headers`.
