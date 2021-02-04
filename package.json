@@ -15,7 +15,7 @@
     "build": "tsdx build",
     "test": "tsdx test --ci",
     "test:watch": "tsdx test --clearCache && tsdx test --watchAll",
-    "lint": "tsdx lint",
+    "lint": "tsdx lint src test",
     "prepare": "tsdx build",
     "size": "size-limit",
     "analyze": "size-limit --why",
@@ -45,12 +45,16 @@
     }
   ],
   "dependencies": {
-    "@azure/functions": "^1.2.3"
+    "@azure/functions": "^1.2.3",
+    "form-data": "^3.0.0",
+    "node-fetch": "^2.6.1"
   },
   "devDependencies": {
     "@size-limit/preset-small-lib": "^4.9.2",
+    "@types/node-fetch": "^2.5.8",
     "@types/node-telegram-bot-api": "^0.51.0",
     "husky": "3",
+    "nock": "^13.0.7",
     "size-limit": "^4.9.2",
     "tsdx": "^0.14.1",
     "tslib": "^2.1.0",

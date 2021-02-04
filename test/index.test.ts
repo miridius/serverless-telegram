@@ -1,8 +1,8 @@
-import ctx from './defaultContext';
-import type { Message, MessageHandler, Response } from '../src';
+import { ctx } from './helpers';
+import type { Message, MessageHandler, MessageResponse } from '../src';
 import { createAzureTelegramWebhook } from '../src';
 
-const textMessageUpdate = {
+const textMsgUpdate = {
   body: {
     update_id: 1,
     message: { text: 'more good things please', chat: { id: 1 } },
@@ -20,12 +20,11 @@ const textResponse = {
   },
 };
 
-const handler: MessageHandler = ({ text }: Message): Response => text;
+const handler: MessageHandler = ({ text }: Message): MessageResponse => text;
 
-// note: we use async/await because Jest's .resolves does not fail the tests.
 describe('createAzureTelegramWebhook', () => {
-  it('handles telegram webhook updates and responses via http', async () => {
+  it('handles telegram webhook updates and responses via http', () => {
     const webhook = createAzureTelegramWebhook(handler);
-    expect(await webhook(ctx, textMessageUpdate)).toEqual(textResponse);
+    return expect(webhook(ctx, textMsgUpdate)).resolves.toEqual(textResponse);
   });
 });

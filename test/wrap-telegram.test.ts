@@ -1,19 +1,30 @@
-import { Chat, InlineQuery, Message, Update } from 'node-telegram-bot-api';
-import { HttpResponse } from '../src/wrap-azure';
-import wrapTelegram, {
-  getMessage,
-  MessageHandler,
-  strToObj,
-  ResponseMethod,
-  toMethod,
-  ResponseObject,
-  toAnswerInlineMethod,
-  InlineResult,
+import type {
+  Chat,
+  InlineQuery,
   InlineResponse,
-} from '../src/wrap-telegram';
-import ctx from './defaultContext';
+  InlineResult,
+  Message,
+  MessageHandler,
+  ResponseMethod,
+  ResponseObject,
+  Update,
+} from '../src/wrap-telegram/types';
+import wrapTelegram from '../src/wrap-telegram';
+import { log, withNockback } from './helpers';
+import { createReadStream } from 'fs';
+import {
+  callTgApi,
+  toAnswerInlineMethod,
+} from '../src/wrap-telegram/telegram-api';
 
-const chat_id = 3;
+// Since form boundary is generated randomly we need to make it deterministic
+Math.random = jest.fn(() => 0.5);
+
+// TEST DATA
+
+process.env.BOT_API_TOKEN ??= '1111:fake_token';
+const chat_id = parseInt(process.env.TEST_CHAT_ID) || 2222;
+
 const chat: Chat = {
   id: chat_id,
   type: 'private',
@@ -53,151 +64,24 @@ const videoResponse: ResponseMethod = {
   video,
 };
 
-const media = ['url1', 'url2'];
-const mediaResponse: ResponseMethod = {
-  method: 'sendMediaGroup',
+const sendDocument = {
+  document: createReadStream(__dirname + '/__fixtures__/test-file.txt'),
+  reply_to_message_id: 23,
+  reply_markup: {
+    inline_keyboard: [[{ text: 'Click me', url: 'https://example.com' }]],
+  },
+};
+const docResponse: ResponseMethod = {
+  ...sendDocument,
+  method: 'sendDocument',
   chat_id,
-  media,
 };
 
-describe('getMessage', () => {
-  it('gets message from an update', () => {
-    expect(getMessage(update)).toEqual(message);
-  });
-  it('ignores non-message updates', () => {
-    expect(getMessage({ update_id: 1 })).toBeFalsy();
-  });
-});
-
-describe('normalizeResponse', () => {
-  it('converts a string', () => {
-    expect(strToObj(text)).toEqual({ text });
-  });
-  it('ignores an object', () => {
-    expect(strToObj({ text })).toEqual({ text });
-    expect(strToObj({ media })).toEqual({ media });
-  });
-  it('ignores undefined', () => {
-    expect(strToObj()).toBeUndefined();
-  });
-});
-
-describe('toMethod', () => {
-  it('returns user defined HTTP responses as is', () => {
-    let res: HttpResponse = { body: Buffer.from('this is a buffer') };
-    expect(toMethod(res, chat_id)).toEqual(res);
-  });
-  it('sends a text message', () => {
-    expect(toMethod({ text }, chat_id)).toEqual(responseMethod);
-  });
-  it('sends a sticker', () => {
-    expect(toMethod({ sticker }, chat_id)).toEqual(stickerResponse);
-  });
-  it('sends a video', () => {
-    expect(toMethod({ video }, chat_id)).toEqual(videoResponse);
-  });
-  it('sends a media group', () => {
-    expect(toMethod({ media }, chat_id)).toEqual(mediaResponse);
-  });
-  it('throws an error for unknown responses', () => {
-    expect(() =>
-      toMethod({ foo: 'bar' } as ResponseObject, chat_id),
-    ).toThrowErrorMatchingInlineSnapshot(
-      `"Not a valid message response: {\\"foo\\":\\"bar\\"}"`,
-    );
-  });
-  it('sends no response', () => {
-    expect(toMethod(undefined, chat_id)).toBeUndefined();
-  });
-});
-
-describe('toAnswerInlineMethod', () => {
-  const queryId = 'q';
-  const results: InlineResult[] = [
-    {
-      type: 'audio',
-      id: 'audio-id',
-      audio_url: 'foo://bar',
-      title: 'baz',
-    },
-    { photo_url: 'photo URL', thumb_url: 'thumb URL' },
-    { latitude: 123, longitude: 456, title: 'home' },
-    { title: 'article title', input_message_content: {} },
-  ];
-  it('works with results array', () => {
-    expect(toAnswerInlineMethod(results, queryId)).toMatchInlineSnapshot(`
-      Object {
-        "inline_query_id": "q",
-        "method": "answerInlineQuery",
-        "results": Array [
-          Object {
-            "audio_url": "foo://bar",
-            "id": "audio-id",
-            "title": "baz",
-            "type": "audio",
-          },
-          Object {
-            "id": "1",
-            "photo_url": "photo URL",
-            "thumb_url": "thumb URL",
-            "type": "photo",
-          },
-          Object {
-            "id": "2",
-            "latitude": 123,
-            "longitude": 456,
-            "title": "home",
-            "type": "location",
-          },
-          Object {
-            "id": "3",
-            "input_message_content": Object {},
-            "title": "article title",
-            "type": "article",
-          },
-        ],
-      }
-    `);
-  });
-  it('works with answerInlineQuery options', () => {
-    expect(toAnswerInlineMethod({ results: [], cache_time: 100000 }, queryId))
-      .toMatchInlineSnapshot(`
-      Object {
-        "cache_time": 100000,
-        "inline_query_id": "q",
-        "method": "answerInlineQuery",
-        "results": Array [],
-      }
-    `);
-  });
-  it('passes through ResponseMethods', () => {
-    expect(
-      toAnswerInlineMethod({ method: 'sendMessage', chat_id: 1 }, queryId),
-    ).toEqual({ method: 'sendMessage', chat_id: 1 });
-  });
-  it('passes through HttpResponse and NoResponse', () => {
-    expect(toAnswerInlineMethod({ status: 200 }, queryId)).toEqual({
-      status: 200,
-    });
-    expect(toAnswerInlineMethod(undefined, queryId)).toBeUndefined();
-  });
-  it('throws errors for unknown response objects', () => {
-    expect(() =>
-      toAnswerInlineMethod([{}] as InlineResponse, queryId),
-    ).toThrowErrorMatchingInlineSnapshot(`"Not a valid inline result: {}"`);
-    expect(() =>
-      toAnswerInlineMethod({}, queryId),
-    ).toThrowErrorMatchingInlineSnapshot(
-      `"Not a valid inline query response: {}"`,
-    );
-  });
-});
-
-describe('wrapTelegram', () => {
+describe('update handling', () => {
   const echoHandler = wrapTelegram(async ({ text }) => text);
 
   it('passes messages to the handler and forms the response method', async () => {
-    expect(await echoHandler(update, ctx.log)).toEqual(responseMethod);
+    expect(await echoHandler(update, log)).toEqual(responseMethod);
   });
 
   it('works with message & handlers passed in a map', async () => {
@@ -212,8 +96,8 @@ describe('wrapTelegram', () => {
         query: 'query text',
       } as InlineQuery,
     };
-    expect(await handler(update, ctx.log)).toEqual(responseMethod);
-    expect(await handler(inlineUpdate, ctx.log)).toMatchInlineSnapshot(`
+    expect(await handler(update, log)).toEqual(responseMethod);
+    expect(await handler(inlineUpdate, log)).toMatchInlineSnapshot(`
       Object {
         "inline_query_id": "abc",
         "method": "answerInlineQuery",
@@ -230,28 +114,159 @@ describe('wrapTelegram', () => {
   });
 
   it("ignores updates that don't contain a message", async () => {
-    expect(await echoHandler({ update_id: 1 }, ctx.log)).toBeUndefined();
+    expect(await echoHandler({ update_id: 1 }, log)).toBeUndefined();
   });
 
   it('ignores requests that are not a telegram update', async () => {
-    expect(await echoHandler(undefined, ctx.log)).toBeUndefined();
-    expect(await echoHandler(false, ctx.log)).toBeUndefined();
-    expect(await echoHandler(1, ctx.log)).toBeUndefined();
-    expect(await echoHandler('', ctx.log)).toBeUndefined();
-    expect(await echoHandler({}, ctx.log)).toBeUndefined();
+    expect(await echoHandler(undefined, log)).toBeUndefined();
+    expect(await echoHandler(false, log)).toBeUndefined();
+    expect(await echoHandler(1, log)).toBeUndefined();
+    expect(await echoHandler('', log)).toBeUndefined();
+    expect(await echoHandler({}, log)).toBeUndefined();
   });
 
   it('handles errors', async () => {
     const throwingHandler: MessageHandler = async ({ text }) => {
       throw new Error(text);
     };
-    const response = await wrapTelegram(throwingHandler, 123)(update, ctx.log);
+    const response = await wrapTelegram(throwingHandler, 123)(update, log);
     expect(response).toHaveProperty('chat_id', 123);
     expect(response).toHaveProperty('method', 'sendMessage');
     expect(response).toHaveProperty('text');
 
-    expect(wrapTelegram(throwingHandler)(update, ctx.log)).rejects.toThrow(
-      text,
+    expect(wrapTelegram(throwingHandler)(update, log)).rejects.toThrow(text);
+  });
+});
+
+describe('message response parsing', () => {
+  const testResponse = (res) => wrapTelegram(() => res)(update, log);
+
+  it('interprets a string as a text message', () => {
+    return expect(testResponse(text)).resolves.toEqual(responseMethod);
+  });
+  it('sends a text message', () => {
+    return expect(testResponse({ text })).resolves.toEqual(responseMethod);
+  });
+  it('sends a sticker', () => {
+    return expect(testResponse({ sticker })).resolves.toEqual(stickerResponse);
+  });
+  it('sends a video', () => {
+    return expect(testResponse({ video })).resolves.toEqual(videoResponse);
+  });
+  it('sends a local file, with inline keyboard', () => {
+    expect.assertions(1);
+    return withNockback('sendDocument.json', () =>
+      expect(testResponse(sendDocument)).resolves.toBeUndefined(),
+    );
+  });
+  it('throws an error for unknown responses', () => {
+    return expect(() =>
+      testResponse({ x: 1 } as ResponseObject),
+    ).rejects.toThrowErrorMatchingInlineSnapshot(
+      `"Not a valid message response: {\\"x\\":1}"`,
+    );
+  });
+  it('sends no response', () => {
+    return expect(testResponse(undefined)).resolves.toBeUndefined();
+  });
+});
+
+describe('inline response parsing', () => {
+  const queryId = 'q';
+  const results: InlineResult[] = [
+    {
+      type: 'audio',
+      id: 'audio-id',
+      audio_url: 'foo://bar',
+      title: 'baz',
+    },
+    { photo_url: 'photo URL', thumb_url: 'thumb URL' },
+    { latitude: 123, longitude: 456, title: 'home' },
+    { title: 'article title', input_message_content: {} },
+  ];
+  it('works with results array', () => {
+    expect(toAnswerInlineMethod(results, queryId)).toMatchSnapshot();
+  });
+  it('works with answerInlineQuery options', () => {
+    const res = { results: [], cache_time: 100000 };
+    expect(toAnswerInlineMethod(res, queryId)).toEqual({
+      method: 'answerInlineQuery',
+      inline_query_id: queryId,
+      ...res,
+    });
+  });
+  it('passes through ResponseMethods', () => {
+    expect(
+      toAnswerInlineMethod({ method: 'sendMessage', chat_id: 1 }, queryId),
+    ).toEqual({ method: 'sendMessage', chat_id: 1 });
+  });
+  it('passes through NoResponse', () => {
+    expect(toAnswerInlineMethod(undefined, queryId)).toBeUndefined();
+  });
+  it('throws errors for unknown response objects', () => {
+    expect(() =>
+      toAnswerInlineMethod([{}] as InlineResponse, queryId),
+    ).toThrowErrorMatchingInlineSnapshot(`"Not a valid inline result: {}"`);
+    expect(() =>
+      toAnswerInlineMethod({} as InlineResponse, queryId),
+    ).toThrowErrorMatchingInlineSnapshot(
+      `"Not a valid inline query response: {}"`,
+    );
+  });
+});
+
+describe('Env', () => {
+  it('MessageEnv object is passed to message handler', () => {
+    expect.assertions(1);
+    const handler = (msg, env) => {
+      expect(env).toEqual({
+        log: log,
+        debug: log.verbose,
+        info: log.info,
+        warn: log.warn,
+        error: log.error,
+        update,
+        req: msg,
+        handler,
+      });
+    };
+    return wrapTelegram(handler)(update, log);
+  });
+  it('supports calling the telegram API', async () => {
+    expect.assertions(1);
+    return withNockback('sendChatAction.json', () =>
+      wrapTelegram(async (_msg, env) =>
+        expect(env.send({ action: 'upload_document' })).resolves.toBe(true),
+      )(update, log),
+    );
+  });
+});
+
+describe('callTgApi', () => {
+  beforeEach(() => (process.env.BOT_API_TOKEN = '1111:fake_token'));
+
+  it('ignores NoResponse', () => {
+    return expect(callTgApi()).resolves.toBeUndefined();
+  });
+
+  it('throws an error if result is not ok', () => {
+    expect.assertions(1);
+    return withNockback('error.json', () => {
+      const badRes = { method: 'sendMessage' } as ResponseMethod;
+      return expect(() =>
+        callTgApi(badRes),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(
+        `"Telegram API error: Bad Request: message text is empty"`,
+      );
+    });
+  });
+
+  it('throws an error if BOT_API_TOKEN is not set', () => {
+    delete process.env.BOT_API_TOKEN;
+    return expect(() =>
+      callTgApi(docResponse),
+    ).rejects.toThrowErrorMatchingInlineSnapshot(
+      `"BOT_API_TOKEN environment variable not set!"`,
     );
   });
 });

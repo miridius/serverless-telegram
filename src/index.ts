@@ -1,4 +1,5 @@
-import wrapTelegram, { MessageHandler, HandlerMap } from './wrap-telegram';
+import type { MessageHandler, HandlerMap } from './wrap-telegram/types';
+import wrapTelegram from './wrap-telegram';
 import wrapAzure, { AzureFunction } from './wrap-azure';
 
 // re-exports
@@ -6,20 +7,24 @@ export { wrapAzure, wrapTelegram };
 export type {
   AnswerInlineQuery,
   Chat,
+  Env,
   HandlerMap,
+  InlineEnv,
   InlineHandler,
   InlineQuery,
   InlineQueryResult,
   InlineResult,
   Message,
+  MessageEnv,
   MessageHandler,
+  MessageResponse,
   NoResponse,
-  Response,
   ResponseMethod,
   ResponseObject,
+  TgApiRequest,
   Update,
   User,
-} from './wrap-telegram';
+} from './wrap-telegram/types';
 export type {
   AzureFunction,
   BodyHandler,

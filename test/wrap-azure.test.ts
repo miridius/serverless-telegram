@@ -1,5 +1,5 @@
 import { HttpRequest } from '@azure/functions';
-import ctx from './defaultContext';
+import { ctx } from './helpers';
 import wrapAzure, { HttpResponse } from '../src/wrap-azure';
 
 const jsonObj = {

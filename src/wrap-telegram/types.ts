@@ -1,5 +1,6 @@
 import type {
   AnswerInlineQueryOptions,
+  Chat,
   InlineQuery,
   InlineQueryResult,
   InlineQueryResultArticle,
@@ -22,9 +23,25 @@ import type {
   InlineQueryResultVenue,
   InlineQueryResultVideo,
   InlineQueryResultVoice,
+  InputMedia,
   Message,
+  Update,
+  User,
 } from 'node-telegram-bot-api';
-import type { HttpResponse, Logger } from '../wrap-azure';
+import type { Env, MessageEnv, InlineEnv } from './env';
+import type { ReadStream } from 'fs';
+
+export type {
+  Chat,
+  Env,
+  InlineEnv,
+  InlineQuery,
+  InlineQueryResult,
+  Message,
+  MessageEnv,
+  Update,
+  User,
+};
 
 export interface HandlerMap {
   message?: MessageHandler;
@@ -33,34 +50,33 @@ export interface HandlerMap {
 
 export type MessageHandler = (
   message: Message,
-  log: Logger,
-) => Promise<Response> | Response;
+  env: MessageEnv,
+) => Promise<MessageResponse> | MessageResponse;
 
-export type Response =
+export type MessageResponse =
   | string
   | ResponseObject
   | ResponseMethod
-  | HttpResponse
   | NoResponse;
 
 export interface ResponseObject {
   // one of the following keys should be included
   text?: string;
-  photo?: string;
-  audio?: string;
-  document?: string;
-  video?: string;
-  animation?: string;
-  voice?: string;
-  video_note?: string;
-  media?: string[];
+  photo?: string | ReadStream;
+  audio?: string | ReadStream;
+  document?: string | ReadStream;
+  video?: string | ReadStream;
+  animation?: string | ReadStream;
+  voice?: string | ReadStream;
+  video_note?: string | ReadStream;
+  media?: InputMedia[]; // TODO: simplify & support file uploads
   address?: string;
   latitude?: number;
   phone_number?: string;
   question?: string;
   emoji?: string;
   action?: string;
-  sticker?: string;
+  sticker?: string | ReadStream;
   // OPTIONAL: any additional parameters for the telegram api method
   [param: string]: any;
   // OPTIONAL: redirect response to a different chat than the message came from
@@ -93,19 +109,17 @@ export type NoResponse = void | null | undefined | false | '' | 0;
 export type UpdateResponse =
   | ResponseMethod
   | AnswerInlineQueryMethod
-  | HttpResponse
   | NoResponse;
 
 export type InlineHandler = (
   inline: InlineQuery,
-  log: Logger,
+  env: InlineEnv,
 ) => Promise<InlineResponse> | InlineResponse;
 
 export type InlineResponse =
   | InlineResult[]
   | AnswerInlineQuery
   | ResponseMethod
-  | HttpResponse
   | NoResponse;
 
 type TypeAndIdOptional<T extends InlineQueryResult> = {
@@ -145,6 +159,56 @@ export interface AnswerInlineQueryMethod extends AnswerInlineQueryOptions {
   results: InlineQueryResult[];
 }
 
+export type TgApiRequest =
+  | ResponseMethod
+  | AnswerInlineQueryMethod
+  | { method: string; [param: string]: any };
+
 // utility types
 export type AllKeys<T> = T extends T ? keyof T : never;
 export type Mapping<T, K extends keyof T> = { [param in AllKeys<T>]?: T[K] };
+
+// Mappings
+export const METHOD_MAPPING: Record<
+  keyof ResponseObject,
+  ResponseMethod['method']
+> = {
+  text: 'sendMessage',
+  photo: 'sendPhoto',
+  audio: 'sendAudio',
+  document: 'sendDocument',
+  video: 'sendVideo',
+  animation: 'sendAnimation',
+  voice: 'sendVoice',
+  video_note: 'sendVideoNote',
+  media: 'sendMediaGroup',
+  address: 'sendVenue',
+  latitude: 'sendLocation',
+  phone_number: 'sendContact',
+  question: 'sendPoll',
+  emoji: 'sendDice',
+  action: 'sendChatAction',
+  sticker: 'sendSticker',
+};
+
+export const INLINE_TYPE_MAPPING: Mapping<InlineResult, 'type'> = {
+  audio_file_id: 'audio',
+  document_file_id: 'document',
+  gif_file_id: 'gif',
+  mpeg4_file_id: 'mpeg4_gif',
+  photo_file_id: 'photo',
+  sticker_file_id: 'sticker',
+  video_file_id: 'video',
+  voice_file_id: 'voice',
+  url: 'article',
+  audio_url: 'audio',
+  phone_number: 'contact',
+  game_short_name: 'game',
+  document_url: 'document',
+  gif_url: 'gif',
+  mpeg4_url: 'mpeg4_gif',
+  photo_url: 'photo',
+  address: 'venue',
+  video_url: 'video',
+  voice_url: 'voice',
+};

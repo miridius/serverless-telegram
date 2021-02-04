@@ -1,0 +1,33 @@
+[
+  {
+    "scope": "https://api.telegram.org:443",
+    "method": "POST",
+    "path": "/bot1111:fake_token/sendMessage",
+    "body": {},
+    "status": 400,
+    "response": {
+      "ok": false,
+      "error_code": 400,
+      "description": "Bad Request: message text is empty"
+    },
+    "rawHeaders": [
+      "Server",
+      "nginx/1.16.1",
+      "Date",
+      "Wed, 03 Feb 2021 16:49:48 GMT",
+      "Content-Type",
+      "application/json",
+      "Content-Length",
+      "80",
+      "Connection",
+      "close",
+      "Strict-Transport-Security",
+      "max-age=31536000; includeSubDomains; preload",
+      "Access-Control-Allow-Origin",
+      "*",
+      "Access-Control-Expose-Headers",
+      "Content-Length,Content-Type,Date,Server,Connection"
+    ],
+    "responseIsBinary": false
+  }
+]

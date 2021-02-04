@@ -1,0 +1,101 @@
+[
+  {
+    "scope": "https://api.telegram.org:443",
+    "method": "POST",
+    "path": "/bot1111:fake_token/sendDocument",
+    "body": "----------------------------555555555555555555555555\r\nContent-Disposition: form-data; name=\"chat_id\"\r\n\r\n2222\r\n----------------------------555555555555555555555555\r\nContent-Disposition: form-data; name=\"document\"; filename=\"test-file.txt\"\r\nContent-Type: text/plain\r\n\r\nTest file content\r\n----------------------------555555555555555555555555\r\nContent-Disposition: form-data; name=\"reply_to_message_id\"\r\n\r\n23\r\n----------------------------555555555555555555555555\r\nContent-Disposition: form-data; name=\"reply_markup\"\r\n\r\n{\"inline_keyboard\":[[{\"text\":\"Click me\",\"url\":\"https://example.com\"}]]}\r\n----------------------------555555555555555555555555--\r\n",
+    "status": 200,
+    "response": {
+      "ok": true,
+      "result": {
+        "message_id": 25,
+        "from": {
+          "id": 1111,
+          "is_bot": true,
+          "first_name": "Dev Bot",
+          "username": "dev_bot"
+        },
+        "chat": {
+          "id": 2222,
+          "first_name": "Dave",
+          "last_name": "Rolle",
+          "username": "DavidRolle",
+          "type": "private"
+        },
+        "date": 1612369936,
+        "reply_to_message": {
+          "message_id": 23,
+          "from": {
+            "id": 1111,
+            "is_bot": true,
+            "first_name": "Dev Bot",
+            "username": "dev_bot"
+          },
+          "chat": {
+            "id": 2222,
+            "first_name": "Dave",
+            "last_name": "Rolle",
+            "username": "DavidRolle",
+            "type": "private"
+          },
+          "date": 1612369643,
+          "document": {
+            "file_name": "test-file.txt",
+            "mime_type": "text/plain",
+            "file_id": "BQACAgIAAxkDAAMXYBrO666Pa5QtSX-uRludRPEYe8cAAu8MAAKTPNFIhZeNxJrjKjIeBA",
+            "file_unique_id": "AgAD7wwAApM80Ug",
+            "file_size": 17
+          },
+          "reply_markup": {
+            "inline_keyboard": [
+              [
+                {
+                  "text": "Click me",
+                  "url": "https://example.com/"
+                }
+              ]
+            ]
+          }
+        },
+        "document": {
+          "file_name": "test-file.txt",
+          "mime_type": "text/plain",
+          "file_id": "BQACAgIAAxkDAAMZYBrQEKL4uKBKBn_IHgURvviJLHYAAvUMAAKTPNFI0opv5OSH68weBA",
+          "file_unique_id": "AgAD9QwAApM80Ug",
+          "file_size": 17
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Click me",
+                "url": "https://example.com/"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "rawHeaders": [
+      "Server",
+      "nginx/1.16.1",
+      "Date",
+      "Wed, 03 Feb 2021 16:32:16 GMT",
+      "Content-Type",
+      "application/json",
+      "Content-Length",
+      "1091",
+      "Connection",
+      "close",
+      "Strict-Transport-Security",
+      "max-age=31536000; includeSubDomains; preload",
+      "Access-Control-Allow-Origin",
+      "*",
+      "Access-Control-Allow-Methods",
+      "GET, POST, OPTIONS",
+      "Access-Control-Expose-Headers",
+      "Content-Length,Content-Type,Date,Server,Connection"
+    ],
+    "responseIsBinary": false
+  }
+]
