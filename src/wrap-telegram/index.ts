@@ -5,12 +5,10 @@ import type {
   Message,
   Update,
 } from './types';
+import { isObject } from '../utils';
 import { BodyHandler, Logger } from '../wrap-azure';
 import { InlineEnv, MessageEnv } from './env';
 import { callTgApi, hasFileParams } from './telegram-api';
-
-const isObject = (x: unknown): x is Exclude<object, null> =>
-  typeof x === 'object' && x !== null;
 
 export const isUpdate = (body: unknown): body is Update =>
   isObject(body) && 'update_id' in body;

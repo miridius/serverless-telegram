@@ -12,6 +12,8 @@ import {
   toResponseMethod,
 } from './telegram-api';
 
+type Handler<Req, Res> = (req: Req, env: Env<Req, Res>) => Promise<Res> | Res;
+
 export class Env<Req, Res> {
   log: Logger;
   debug: Logger['verbose'];
@@ -21,7 +23,7 @@ export class Env<Req, Res> {
 
   update: Update;
   req: Req;
-  handler: (req: Req, env: Env<Req, Res>) => Promise<Res> | Res;
+  handler: Handler<Req, Res>;
 
   // let the user add additional properties if they want
   [k: string]: any;
@@ -30,7 +32,7 @@ export class Env<Req, Res> {
     log: Logger,
     update: Update,
     req: Req,
-    handler: (req: Req, env: Env<Req, Res>) => Promise<Res> | Res,
+    handler: Handler<Req, Res>,
   ) {
     this.log = log;
     this.debug = log.verbose;

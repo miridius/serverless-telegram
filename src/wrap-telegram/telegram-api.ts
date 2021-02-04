@@ -12,6 +12,7 @@ import {
   TgApiRequest,
   UpdateResponse,
 } from './types';
+import { isObject } from '../utils';
 import { ReadStream } from 'fs';
 import fetch, { RequestInit } from 'node-fetch';
 import FormData from 'form-data';
@@ -36,9 +37,6 @@ export const toResponseMethod = (
   }
   return { method, chat_id, ...resObj };
 };
-
-const isObject = (x: unknown): x is Exclude<object, null> =>
-  typeof x === 'object' && x !== null;
 
 const isAnswerInlineQuery = (res: unknown): res is AnswerInlineQuery =>
   isObject(res) && Array.isArray((res as AnswerInlineQuery).results);
