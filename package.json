@@ -1,48 +1,32 @@
 {
+  "name": "serverless-telegram",
+  "description": "A simple library to remove some of the repetitive work in creating servlerless telegram bots",
   "version": "0.3.2",
-  "license": "MIT",
-  "main": "dist/index.js",
-  "typings": "dist/index.d.ts",
-  "files": [
-    "dist",
-    "src"
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/miridius/serverless-telegram.git"
+  },
+  "keywords": [
+    "telegram",
+    "bot",
+    "serverless",
+    "azure"
   ],
+  "author": "David D. Rolle",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/miridius/serverless-telegram/issues"
+  },
+  "homepage": "https://github.com/miridius/serverless-telegram",
   "engines": {
     "node": "^14"
   },
-  "scripts": {
-    "start": "tsdx watch",
-    "build": "tsdx build",
-    "test": "tsdx test --ci",
-    "test:watch": "tsdx test --clearCache && tsdx test --watchAll",
-    "lint": "tsdx lint src test",
-    "prepare": "tsdx build",
-    "size": "size-limit",
-    "analyze": "size-limit --why",
-    "update-deps": "npx ncu -u && yarn install && yarn lint && yarn test",
-    "release": "npx ncu -e2 && npx np"
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "tsdx lint"
-    }
-  },
-  "prettier": {
-    "singleQuote": true,
-    "trailingComma": "all"
-  },
-  "name": "serverless-telegram",
-  "author": "David D. Rolle",
+  "main": "dist/index.js",
+  "typings": "dist/index.d.ts",
   "module": "dist/serverless-telegram.esm.js",
-  "size-limit": [
-    {
-      "path": "dist/serverless-telegram.cjs.production.min.js",
-      "limit": "10 KB"
-    },
-    {
-      "path": "dist/serverless-telegram.esm.js",
-      "limit": "10 KB"
-    }
+  "files": [
+    "dist",
+    "src"
   ],
   "dependencies": {
     "@azure/functions": "^1.2.3",
@@ -68,5 +52,36 @@
     "**/prettier": "^2",
     "**/ts-jest": "^26",
     "**/typescript": "^4"
-  }
+  },
+  "scripts": {
+    "start": "tsdx watch",
+    "build": "tsdx build",
+    "test": "tsdx test --ci",
+    "test:watch": "tsdx test --clearCache && tsdx test --watchAll",
+    "lint": "tsdx lint src test",
+    "prepare": "tsdx build",
+    "size": "size-limit",
+    "analyze": "size-limit --why",
+    "update-deps": "npx ncu -u && yarn install && yarn lint && yarn test",
+    "release": "npx ncu -e2 && npx np"
+  },
+  "prettier": {
+    "singleQuote": true,
+    "trailingComma": "all"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "tsdx lint"
+    }
+  },
+  "size-limit": [
+    {
+      "path": "dist/serverless-telegram.cjs.production.min.js",
+      "limit": "10 KB"
+    },
+    {
+      "path": "dist/serverless-telegram.esm.js",
+      "limit": "10 KB"
+    }
+  ]
 }

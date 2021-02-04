@@ -1,6 +1,6 @@
 # serverless-telegram
 
-[![npm version](https://badge.fury.io/js/serverless-telegram.svg)](https://badge.fury.io/js/serverless-telegram)
+[![npm version](https://badge.fury.io/js/serverless-telegram.svg)](https://www.npmjs.com/package/serverless-telegram)
 [![Known Vulnerabilities](https://snyk.io/test/github/miridius/serverless-telegram/badge.svg)](https://snyk.io/test/github/miridius/serverless-telegram)
 [![GitHub license](https://img.shields.io/github/license/miridius/serverless-telegram)](https://github.com/miridius/serverless-telegram/blob/master/LICENSE)
 [![GitHub CI](https://github.com/miridius/serverless-telegram/workflows/CI/badge.svg)](https://github.com/miridius/serverless-telegram/actions?query=workflow%3ACI)
