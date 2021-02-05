@@ -58,7 +58,6 @@ export class Env<T, R> {
    * @returns a promise resolving to the API call result (if any)
    */
   async send(res: R) {
-    // return callTgApi(this.toUpdateRes(res))
     const req = this.toUpdateRes(res);
     return req && callTgApi(req);
   }
