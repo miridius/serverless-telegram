@@ -1,10 +1,12 @@
 import type { Logger } from '../wrap-azure';
 import type {
+  Handler,
   InlineQuery,
   InlineResponse,
   Message,
   MessageResponse,
   Update,
+  UpdateResponse,
 } from './types';
 import {
   callTgApi,
@@ -12,9 +14,7 @@ import {
   toResponseMethod,
 } from './telegram-api';
 
-type Handler<Req, Res> = (req: Req, env: Env<Req, Res>) => Promise<Res> | Res;
-
-export class Env<Req, Res> {
+export class Env<T, R> {
   log: Logger;
   debug: Logger['verbose'];
   info: Logger['info'];
@@ -22,8 +22,8 @@ export class Env<Req, Res> {
   error: Logger['error'];
 
   update: Update;
-  req: Req;
-  handler: Handler<Req, Res>;
+  msgOrInline: T;
+  handler: Handler<T, any, R>;
 
   // let the user add additional properties if they want
   [k: string]: any;
@@ -31,8 +31,8 @@ export class Env<Req, Res> {
   constructor(
     log: Logger,
     update: Update,
-    req: Req,
-    handler: Handler<Req, Res>,
+    req: T,
+    handler: Handler<T, any, R>,
   ) {
     this.log = log;
     this.debug = log.verbose;
@@ -41,36 +41,41 @@ export class Env<Req, Res> {
     this.error = log.error;
 
     this.update = update;
-    this.req = req;
+    this.msgOrInline = req;
     this.handler = handler;
   }
 
   /** Internal method used by serverless-telegram to run the handler */
   protected async execute() {
-    return this.toUpdateRes(await this.handler(this.req, this));
+    return this.toUpdateRes(await this.handler(this.msgOrInline, this));
   }
 
   /**
-   * Call the Telegram Bot API asynchronously.
-   * @param res Object with parameter:value mapping for one of the send* API
-   * {@link https://core.telegram.org/bots/api#available-methods|methods}.
-   * To upload a file, pass a `fs.ReadStream` (using `fs.createReadStream(path)`)
-   * as a parameter value.
+   * Call the Telegram Bot API asynchronously *during* handler execution, as an
+   * alternative to simply returning it from the handler. See `README.md`.
+   * @param res Any of the allowable response types from the current handler
+   * (i.e. `MessageResponse` or `InlineResponse`)
    * @returns a promise resolving to the API call result (if any)
    */
-  async send(res: Res) {
-    return callTgApi(this.toUpdateRes(res));
+  async send(res: R) {
+    // return callTgApi(this.toUpdateRes(res))
+    const req = this.toUpdateRes(res);
+    return req && callTgApi(req);
+  }
+
+  protected toUpdateRes(_res: R): UpdateResponse {
+    throw new Error('toUpdateRes must be implemented by subclass!');
   }
 }
 
 export class MessageEnv extends Env<Message, MessageResponse> {
   protected toUpdateRes(res: MessageResponse) {
-    return toResponseMethod(res, this.req.chat.id);
+    return toResponseMethod(res, this.msgOrInline.chat.id);
   }
 }
 
 export class InlineEnv extends Env<InlineQuery, InlineResponse> {
   protected toUpdateRes(res: InlineResponse) {
-    return toAnswerInlineMethod(res, this.req.id);
+    return toAnswerInlineMethod(res, this.msgOrInline.id);
   }
 }

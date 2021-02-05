@@ -76,6 +76,41 @@ Your job is to write a handler function that takes a Message and optionally retu
 1. Create a new telegram bot and set its webhook to point to this URL
 1. Start a private chat with the bot and say "/start". It should reply with "You said: /start"
 
+## Running a local bot server during development
+
+Deploying to Azure every time you want to test your bot would be apain, which is why serverless-telegram comes with a built in **dev server**. It will use telegram's `getUpdates` method to listen for bot updates, run them through your function code, and send the response back to the bot API.
+
+The dev server can be run by importing `startDevServer` from `serverless-telegram`, or directly from the command line by calling `npx start-dev-server`, but if you try this straight away, it will complain that the `BOT_API_TOKEN` environment variable is not set. You will need to first create a new development bot (you can't use your production bot even if you wanted to, since that bot has a webhook set which means you can't manually pull updates), and then provide its api token to the dev server via an environment variable. For example:
+
+```sh
+BOT_API_TOKEN=<your bot API token> npx start-dev-server
+```
+
+To make this easier, you can use the [env-cmd](https://www.npmjs.com/package/env-cmd) package. Install `env-cmd` either as a dev dependency or globally, then create a `.env` file at the root of your project (**and add it to your .gitignore so you don't check it in!**) with the following:
+
+```properties
+BOT_API_TOKEN=<your bot API token>
+```
+
+Now you can just run: `npx env-cmd start-dev-server`
+
+If you want to automatically restart the server when your code changes, you can use [nodemon](https://www.npmjs.com/package/nodemon) like so: `npx nodemon -x env-cmd start-dev-server`
+
+Combining all of the above into a `package.json` script looks like this:
+
+```json
+  "scripts": {
+    "dev": "nodemon -x env-cmd start-dev-server",
+    ...
+  }
+```
+
+Now try sending a message to your dev bot in telegram and you should see it working!
+
+By default, `start-dev-server` will search your current directory for functions and run a dev server for any that it finds, but you can change this by passing a specific function directory to run only that function, or a path to your project root if you're running from elsewhere.
+
+An optional second argument can be passed to change the [long poll timeout](https://core.telegram.org/bots/api#getupdates)
+
 ## Advanced Usage
 
 `createAzureTelegramWebhook` is passed a `MessageHandler`, which is a (usually async) function that takes 2 arguments, a [Message](https://core.telegram.org/bots/api#message) and an execution environment (`Env`). The most used property is `env.log` which is a logger (the Azure [context.log object](https://docs.microsoft.com/en-us/azure/azure-functions/functions-reference-node?tabs=v2#write-trace-output-to-logs)) that must be used for logging instead of console.log. The env object is passed to each call since each function execution has its own individual logging output.

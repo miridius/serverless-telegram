@@ -1,12 +1,15 @@
-import type {
+import {
   Chat,
   InlineQuery,
   InlineResponse,
   InlineResult,
   Message,
+  MessageEnv,
   MessageHandler,
+  MessageResponse,
   ResponseMethod,
   ResponseObject,
+  TgApiRequest,
   Update,
 } from '../src/wrap-telegram/types';
 import wrapTelegram from '../src/wrap-telegram';
@@ -16,6 +19,7 @@ import {
   callTgApi,
   toAnswerInlineMethod,
 } from '../src/wrap-telegram/telegram-api';
+import { Env } from '../src/wrap-telegram/env';
 
 // Since form boundary is generated randomly we need to make it deterministic
 Math.random = jest.fn(() => 0.5);
@@ -23,7 +27,7 @@ Math.random = jest.fn(() => 0.5);
 // TEST DATA
 
 process.env.BOT_API_TOKEN ??= '1111:fake_token';
-const chat_id = parseInt(process.env.TEST_CHAT_ID) || 2222;
+const chat_id = parseInt(process.env.TEST_CHAT_ID || '') || 2222;
 
 const chat: Chat = {
   id: chat_id,
@@ -139,7 +143,8 @@ describe('update handling', () => {
 });
 
 describe('message response parsing', () => {
-  const testResponse = (res) => wrapTelegram(() => res)(update, log);
+  const testResponse = (res: MessageResponse) =>
+    wrapTelegram(() => res)(update, log);
 
   it('interprets a string as a text message', () => {
     return expect(testResponse(text)).resolves.toEqual(responseMethod);
@@ -218,7 +223,7 @@ describe('inline response parsing', () => {
 describe('Env', () => {
   it('MessageEnv object is passed to message handler', () => {
     expect.assertions(1);
-    const handler = (msg, env) => {
+    const handler = (msg: Message, env: MessageEnv) => {
       expect(env).toEqual({
         log: log,
         debug: log.verbose,
@@ -226,7 +231,7 @@ describe('Env', () => {
         warn: log.warn,
         error: log.error,
         update,
-        req: msg,
+        msgOrInline: msg,
         handler,
       });
     };
@@ -240,13 +245,30 @@ describe('Env', () => {
       )(update, log),
     );
   });
+  it('ignores NoResponse', () => {
+    expect.assertions(1);
+    wrapTelegram(async (_msg, env) =>
+      expect(env.send()).resolves.toBeUndefined(),
+    )(update, log);
+  });
+  it('ensures toUpdateRes is implemented', () => {
+    class TestEnv extends Env<string, void> {
+      constructor() {
+        super(log, update, 'foo', () => {});
+        this.toUpdateRes();
+      }
+    }
+    expect(() => new TestEnv()).toThrowErrorMatchingInlineSnapshot(
+      `"toUpdateRes must be implemented by subclass!"`,
+    );
+  });
 });
 
 describe('callTgApi', () => {
-  beforeEach(() => (process.env.BOT_API_TOKEN = '1111:fake_token'));
-
-  it('ignores NoResponse', () => {
-    return expect(callTgApi()).resolves.toBeUndefined();
+  it('ignores empty requests', () => {
+    return expect(
+      callTgApi((undefined as unknown) as TgApiRequest),
+    ).resolves.toBeUndefined();
   });
 
   it('throws an error if result is not ok', () => {
@@ -267,6 +289,15 @@ describe('callTgApi', () => {
       callTgApi(docResponse),
     ).rejects.toThrowErrorMatchingInlineSnapshot(
       `"BOT_API_TOKEN environment variable not set!"`,
+    );
+  });
+
+  it('throws an error when passed a request with no method', () => {
+    delete process.env.BOT_API_TOKEN;
+    return expect(() =>
+      callTgApi(({ foo: 1 } as unknown) as TgApiRequest),
+    ).rejects.toThrowErrorMatchingInlineSnapshot(
+      `"No method in request: {\\"foo\\":1}"`,
     );
   });
 });

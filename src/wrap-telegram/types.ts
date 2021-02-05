@@ -43,15 +43,19 @@ export type {
   User,
 };
 
+export type Handler<T, E extends Env<T, R>, R> = (
+  msgOrInline: T,
+  env: E,
+) => Promise<R> | R;
+
+export type MessageHandler = Handler<Message, MessageEnv, MessageResponse>;
+
+export type InlineHandler = Handler<InlineQuery, InlineEnv, InlineResponse>;
+
 export interface HandlerMap {
   message?: MessageHandler;
   inline?: InlineHandler;
 }
-
-export type MessageHandler = (
-  message: Message,
-  env: MessageEnv,
-) => Promise<MessageResponse> | MessageResponse;
 
 export type MessageResponse =
   | string
@@ -106,16 +110,6 @@ export interface ResponseMethod extends ResponseObject {
 
 export type NoResponse = void | null | undefined | false | '' | 0;
 
-export type UpdateResponse =
-  | ResponseMethod
-  | AnswerInlineQueryMethod
-  | NoResponse;
-
-export type InlineHandler = (
-  inline: InlineQuery,
-  env: InlineEnv,
-) => Promise<InlineResponse> | InlineResponse;
-
 export type InlineResponse =
   | InlineResult[]
   | AnswerInlineQuery
@@ -158,6 +152,11 @@ export interface AnswerInlineQueryMethod extends AnswerInlineQueryOptions {
   inline_query_id: string;
   results: InlineQueryResult[];
 }
+
+export type UpdateResponse =
+  | ResponseMethod
+  | AnswerInlineQueryMethod
+  | NoResponse;
 
 export type TgApiRequest =
   | ResponseMethod

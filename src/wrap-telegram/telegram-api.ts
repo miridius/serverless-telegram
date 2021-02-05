@@ -134,9 +134,10 @@ const getOpts = (params: Record<string, any>, useForm?: boolean) => {
  * automatically decided depending on whether any params are `ReadStream`s.
  * @returns a promise resolving to the API call result (if any)
  */
-export const callTgApi = async (req?: TgApiRequest, useForm?: boolean) => {
+export const callTgApi = async (req: TgApiRequest, useForm?: boolean) => {
   if (!req) return;
   const { method, ...params } = req;
+  if (!method) throw new Error(`No method in request: ${JSON.stringify(req)}`);
   const res = await fetch(getUrl(method), getOpts(params, useForm));
   const json = await res.json();
   if (!json.ok) throw new Error(`Telegram API error: ${json.description}`);

@@ -1,5 +1,10 @@
 import { ctx } from './helpers';
-import type { Message, MessageHandler, MessageResponse } from '../src';
+import type {
+  HttpRequest,
+  Message,
+  MessageHandler,
+  MessageResponse,
+} from '../src';
 import { createAzureTelegramWebhook } from '../src';
 
 const textMsgUpdate = {
@@ -7,7 +12,7 @@ const textMsgUpdate = {
     update_id: 1,
     message: { text: 'more good things please', chat: { id: 1 } },
   },
-};
+} as HttpRequest;
 
 const textResponse = {
   body: {

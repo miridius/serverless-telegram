@@ -1,5 +1,5 @@
-import { AzureFunction, Context, HttpRequest, Logger } from '@azure/functions';
-export { AzureFunction, Context, HttpRequest, Logger };
+import { Context, HttpRequest, Logger } from '@azure/functions';
+export { Context, HttpRequest, Logger };
 
 export type BodyHandler<T = any> = (
   body: unknown,
@@ -12,6 +12,11 @@ export interface HttpResponse {
   headers?: Record<string, string>;
 }
 
+export type AzureHttpFunction = (
+  ctx: Context,
+  req: HttpRequest,
+) => Promise<HttpResponse | undefined>;
+
 export const isHttpResponse = (r?: any): r is HttpResponse =>
   typeof r === 'object' && ('status' in r || 'body' in r || 'headers' in r);
 
@@ -23,10 +28,10 @@ const toHttpResponse = (output?: any): HttpResponse | undefined => {
   return { body: output, headers: { 'Content-Type': 'application/json' } };
 };
 
-export const wrapAzure = (handler: BodyHandler): AzureFunction => async (
+export const wrapAzure = (handler: BodyHandler): AzureHttpFunction => async (
   ctx: Context,
   { body }: HttpRequest,
-): Promise<HttpResponse | void> =>
+): Promise<HttpResponse | undefined> =>
   (ctx.res = toHttpResponse(body && (await handler(body, ctx.log))));
 
 export default wrapAzure;
