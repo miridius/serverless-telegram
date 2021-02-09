@@ -13,7 +13,6 @@ describe('dev server', () => {
   it('gets updates and sends responses', async () => {
     expect.assertions(1);
     await withNockback('devServer.json', async () => {
-      Object.assign(console.log, { verbose: jest.fn(), info: jest.fn() });
       const server = startDevServer(__dirname + '/testProject/webhook1', 1)[0];
       server.stop();
       await new Promise((r) => setTimeout(r, 100));

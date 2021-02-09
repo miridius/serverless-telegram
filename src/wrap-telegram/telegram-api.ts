@@ -11,9 +11,10 @@ import {
   ResponseObject,
   TgApiRequest,
   UpdateResponse,
+  responseFileParams,
 } from './types';
-import { isObject } from '../utils';
-import { ReadStream } from 'fs';
+import { isFileUrl, isObject, toFileUrl } from '../utils';
+import { createReadStream } from 'fs';
 import fetch, { RequestInit } from 'node-fetch';
 import FormData from 'form-data';
 
@@ -98,19 +99,29 @@ const getUrl = (method: string) => {
   return `https://api.telegram.org/bot${token}/${method}`;
 };
 
-export const hasFileParams = (params: Record<string, any>) =>
-  Object.values(params).some((v) => v instanceof ReadStream);
+const urlOrFileId = /(^https?:\/\/)|(^[\w-]{50,}$)/;
 
-const encodeParamVal = (v: any) =>
-  typeof v === 'object' && !(v instanceof ReadStream) ? JSON.stringify(v) : v;
+const isFilePathParam = ([k, v]: [string, unknown]) =>
+  isFileUrl(v) ||
+  (responseFileParams.has(k) && typeof v === 'string' && !v.match(urlOrFileId));
+
+const encodeParamVal = (k: string, v: unknown) =>
+  isFilePathParam([k, v])
+    ? createReadStream(toFileUrl(v as string))
+    : isObject(v)
+    ? JSON.stringify(v)
+    : v;
 
 const createForm = (params: Record<string, any>) => {
   const form = new FormData();
   Object.entries(params)
     .filter(([, v]) => v !== undefined)
-    .forEach(([k, v]) => form.append(k, encodeParamVal(v)));
+    .forEach(([k, v]) => form.append(k, encodeParamVal(k, v)));
   return form;
 };
+
+export const hasFileParams = (params: Record<string, any>) =>
+  Object.entries(params).some(isFilePathParam);
 
 const getOpts = (params: Record<string, any>, useForm?: boolean) => {
   const opts: RequestInit = { method: 'post' };
@@ -118,7 +129,7 @@ const getOpts = (params: Record<string, any>, useForm?: boolean) => {
     opts.body = createForm(params);
   } else {
     opts.body = JSON.stringify(params);
-    opts.headers = { 'content-type': 'application/json' };
+    opts.headers = { 'Content-Type': 'application/json' };
   }
   return opts;
 };

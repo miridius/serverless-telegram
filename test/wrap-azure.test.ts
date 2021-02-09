@@ -52,35 +52,39 @@ const emptyRequest: HttpRequest = {
   rawBody: undefined,
 };
 
+let newCtx = ctx;
+
+beforeEach(() => (newCtx = { ...ctx }));
+
 describe('wrapAzure', () => {
-  const echo = wrapAzure(async (x: any) => x);
+  const echo = wrapAzure(async (_, x: any) => x);
 
   it('handles JSON objects', () => {
-    return expect(echo(ctx, jsonRequest)).resolves.toEqual({
+    return expect(echo(newCtx, jsonRequest)).resolves.toEqual({
       body: jsonObj,
       headers: { 'Content-Type': 'application/json' },
     });
   });
 
   it('works with plain strings', () => {
-    return expect(echo(ctx, stringRequest)).resolves.toEqual({
+    return expect(echo(newCtx, stringRequest)).resolves.toEqual({
       body: 'text body',
     });
   });
 
   it('ignores empty body', () => {
-    return expect(echo(ctx, emptyRequest)).resolves.toBeUndefined();
+    return expect(echo(newCtx, emptyRequest)).resolves.toBeUndefined();
   });
 
   it('passes through user defined HTTP responses', () => {
     let res: HttpResponse = { status: 204, headers: { bar: 'baz' } };
     // deep copy in case the response object is modified
     const returnsRes = wrapAzure(async () => JSON.parse(JSON.stringify(res)));
-    return expect(returnsRes(ctx, jsonRequest)).resolves.toEqual(res);
+    return expect(returnsRes(newCtx, jsonRequest)).resolves.toEqual(res);
   });
 
   it('sets ctx.res as well as the return value', async () => {
-    const returnVal = await echo(ctx, stringRequest);
-    expect(ctx.res).toEqual(returnVal);
+    const returnVal = await echo(newCtx, stringRequest);
+    expect(newCtx.res).toEqual(returnVal);
   });
 });

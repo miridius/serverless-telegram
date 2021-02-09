@@ -2,8 +2,8 @@ import { Context, HttpRequest, Logger } from '@azure/functions';
 export { Context, HttpRequest, Logger };
 
 export type BodyHandler<T = any> = (
+  ctx: Context,
   body: unknown,
-  log: Logger,
 ) => T | Promise<T>;
 
 export interface HttpResponse {
@@ -31,7 +31,9 @@ const toHttpResponse = (output?: any): HttpResponse | undefined => {
 export const wrapAzure = (handler: BodyHandler): AzureHttpFunction => async (
   ctx: Context,
   { body }: HttpRequest,
-): Promise<HttpResponse | undefined> =>
-  (ctx.res = toHttpResponse(body && (await handler(body, ctx.log))));
+): Promise<HttpResponse | undefined> => {
+  const res = toHttpResponse(body && (await handler(ctx, body)));
+  return (ctx.res ||= res);
+};
 
 export default wrapAzure;

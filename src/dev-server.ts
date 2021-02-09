@@ -4,9 +4,16 @@ import { callTgApi } from './wrap-telegram/telegram-api';
 import { resolve } from 'path';
 import { readdirSync } from 'fs';
 
-const log = console.log as Logger;
-const { debug: verbose, info, warn, error } = console;
-Object.assign(log, { verbose, info, warn, error });
+const withDate = (logger: (...args: any[]) => any) => (...args: any[]) =>
+  logger(new Date(), ...args);
+
+const log = withDate(console.log) as Logger;
+Object.assign(log, {
+  verbose: withDate(console.debug),
+  info: withDate(console.info),
+  warn: withDate(console.warn),
+  error: withDate(console.error),
+});
 
 export const calculateNewOffset = (offset?: number, update?: Update) => {
   if (!update) return offset;
@@ -40,7 +47,7 @@ export class DevServer {
 
   private async getUpdates() {
     if (!this.running) return;
-    log.verbose(new Date(), `long polling for updates (max ${this.timeout}s)`);
+    log.verbose(`long polling for updates (max timeout: ${this.timeout}s)`);
     const updates = await callTgApi({
       method: 'getUpdates',
       offset: this.offset,

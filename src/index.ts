@@ -5,18 +5,17 @@ import wrapAzure, { AzureHttpFunction } from './wrap-azure';
 // re-exports
 export { startDevServer, DevServer } from './dev-server';
 export { wrapAzure, wrapTelegram };
+export { Env, MessageEnv, InlineEnv } from './wrap-telegram/env';
+export * as utils from './utils';
 export type {
   AnswerInlineQuery,
   Chat,
-  Env,
   HandlerMap,
-  InlineEnv,
   InlineHandler,
   InlineQuery,
   InlineQueryResult,
   InlineResult,
   Message,
-  MessageEnv,
   MessageHandler,
   MessageResponse,
   NoResponse,

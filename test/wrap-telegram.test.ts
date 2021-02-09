@@ -4,7 +4,6 @@ import type {
   InlineResponse,
   InlineResult,
   Message,
-  MessageEnv,
   MessageHandler,
   MessageResponse,
   ResponseMethod,
@@ -13,13 +12,13 @@ import type {
   Update,
 } from '../src/wrap-telegram/types';
 import wrapTelegram from '../src/wrap-telegram';
-import { log, withNockback } from './helpers';
-import { createReadStream } from 'fs';
+import { ctx, withNockback } from './helpers';
 import {
   callTgApi,
   toAnswerInlineMethod,
 } from '../src/wrap-telegram/telegram-api';
-import { Env } from '../src/wrap-telegram/env';
+import { Env, MessageEnv, InlineEnv } from '../src';
+import { toFileUrl } from '../src/utils';
 
 // Since form boundary is generated randomly we need to make it deterministic
 Math.random = jest.fn(() => 0.5);
@@ -61,7 +60,7 @@ const stickerResponse: ResponseMethod = {
   sticker,
 };
 
-const video = 'video URL or file ID';
+const video = 'http://example.com';
 const videoResponse: ResponseMethod = {
   method: 'sendVideo',
   chat_id,
@@ -69,7 +68,7 @@ const videoResponse: ResponseMethod = {
 };
 
 const sendDocument = {
-  document: createReadStream(__dirname + '/__fixtures__/test-file.txt'),
+  document: toFileUrl(__dirname + '/__fixtures__/test-file.txt'),
   reply_to_message_id: 23,
   reply_markup: {
     inline_keyboard: [[{ text: 'Click me', url: 'https://example.com' }]],
@@ -81,11 +80,15 @@ const docResponse: ResponseMethod = {
   chat_id,
 };
 
+const queryId = 'q';
+const inlineQuery: InlineQuery = { id: queryId, query: 'foo' } as InlineQuery;
+const inlineUpdate: Update = { update_id: 1, inline_query: inlineQuery };
+
 describe('update handling', () => {
   const echoHandler = wrapTelegram(async ({ text }) => text);
 
   it('passes messages to the handler and forms the response method', async () => {
-    expect(await echoHandler(update, log)).toEqual(responseMethod);
+    expect(await echoHandler(ctx, update)).toEqual(responseMethod);
   });
 
   it('works with message & handlers passed in a map', async () => {
@@ -100,8 +103,8 @@ describe('update handling', () => {
         query: 'query text',
       } as InlineQuery,
     };
-    expect(await handler(update, log)).toEqual(responseMethod);
-    expect(await handler(inlineUpdate, log)).toMatchInlineSnapshot(`
+    expect(await handler(ctx, update)).toEqual(responseMethod);
+    expect(await handler(ctx, inlineUpdate)).toMatchInlineSnapshot(`
       Object {
         "inline_query_id": "abc",
         "method": "answerInlineQuery",
@@ -118,33 +121,33 @@ describe('update handling', () => {
   });
 
   it("ignores updates that don't contain a message", async () => {
-    expect(await echoHandler({ update_id: 1 }, log)).toBeUndefined();
+    expect(await echoHandler(ctx, { update_id: 1 })).toBeUndefined();
   });
 
   it('ignores requests that are not a telegram update', async () => {
-    expect(await echoHandler(undefined, log)).toBeUndefined();
-    expect(await echoHandler(false, log)).toBeUndefined();
-    expect(await echoHandler(1, log)).toBeUndefined();
-    expect(await echoHandler('', log)).toBeUndefined();
-    expect(await echoHandler({}, log)).toBeUndefined();
+    expect(await echoHandler(ctx, undefined)).toBeUndefined();
+    expect(await echoHandler(ctx, false)).toBeUndefined();
+    expect(await echoHandler(ctx, 1)).toBeUndefined();
+    expect(await echoHandler(ctx, '')).toBeUndefined();
+    expect(await echoHandler(ctx, {})).toBeUndefined();
   });
 
   it('handles errors', async () => {
     const throwingHandler: MessageHandler = async ({ text }) => {
       throw new Error(text);
     };
-    const response = await wrapTelegram(throwingHandler, 123)(update, log);
+    const response = await wrapTelegram(throwingHandler, 123)(ctx, update);
     expect(response).toHaveProperty('chat_id', 123);
     expect(response).toHaveProperty('method', 'sendMessage');
     expect(response).toHaveProperty('text');
 
-    expect(wrapTelegram(throwingHandler)(update, log)).rejects.toThrow(text);
+    expect(wrapTelegram(throwingHandler)(ctx, update)).rejects.toThrow(text);
   });
 });
 
 describe('message response parsing', () => {
   const testResponse = (res: MessageResponse) =>
-    wrapTelegram(() => res)(update, log);
+    wrapTelegram(() => res)(ctx, update);
 
   it('interprets a string as a text message', () => {
     return expect(testResponse(text)).resolves.toEqual(responseMethod);
@@ -159,9 +162,18 @@ describe('message response parsing', () => {
     return expect(testResponse({ video })).resolves.toEqual(videoResponse);
   });
   it('sends a local file, with inline keyboard', () => {
-    expect.assertions(1);
     return withNockback('sendDocument.json', () =>
       expect(testResponse(sendDocument)).resolves.toBeUndefined(),
+    );
+  });
+  it('understands file URL strings', () => {
+    return withNockback('sendDocument.json', () =>
+      expect(
+        testResponse({
+          ...sendDocument,
+          document: `file://${sendDocument.document.pathname}`,
+        }),
+      ).resolves.toBeUndefined(),
     );
   });
   it('throws an error for unknown responses', () => {
@@ -177,7 +189,6 @@ describe('message response parsing', () => {
 });
 
 describe('inline response parsing', () => {
-  const queryId = 'q';
   const results: InlineResult[] = [
     {
       type: 'audio',
@@ -220,45 +231,76 @@ describe('inline response parsing', () => {
   });
 });
 
-describe('Env', () => {
-  it('MessageEnv object is passed to message handler', () => {
-    expect.assertions(1);
+describe('MessageEnv', () => {
+  it('is passed to message handler with correct properties', () => {
+    expect.assertions(2);
     const handler = (msg: Message, env: MessageEnv) => {
+      expect(msg).toEqual(message);
       expect(env).toEqual({
-        log: log,
-        debug: log.verbose,
-        info: log.info,
-        warn: log.warn,
-        error: log.error,
-        update,
-        msgOrInline: msg,
-        handler,
+        context: ctx,
+        debug: ctx.log.verbose,
+        info: ctx.log.info,
+        warn: ctx.log.warn,
+        error: ctx.log.error,
+        message,
       });
     };
-    return wrapTelegram(handler)(update, log);
+    return wrapTelegram(handler)(ctx, update);
   });
-  it('supports calling the telegram API', async () => {
+
+  it('supports calling the telegram API', () => {
     expect.assertions(1);
     return withNockback('sendChatAction.json', () =>
-      wrapTelegram(async (_msg, env) =>
-        expect(env.send({ action: 'upload_document' })).resolves.toBe(true),
-      )(update, log),
+      expect(
+        new MessageEnv(ctx, message).send({ action: 'upload_document' }),
+      ).resolves.toBe(true),
     );
   });
+});
+
+describe('InlineEnv', () => {
+  it('is passed to inline query handler with correct properties', () => {
+    expect.assertions(2);
+    const handler = (iq: InlineQuery, env: InlineEnv) => {
+      expect(iq).toEqual(inlineQuery);
+      expect(env).toEqual({
+        context: ctx,
+        debug: ctx.log.verbose,
+        info: ctx.log.info,
+        warn: ctx.log.warn,
+        error: ctx.log.error,
+        inlineQuery,
+      });
+    };
+    return wrapTelegram({ inline: handler })(ctx, inlineUpdate);
+  });
+
+  it('supports calling the telegram API', () => {
+    expect.assertions(1);
+    return withNockback('sendChatAction.json', () =>
+      expect(
+        new InlineEnv(ctx, inlineQuery).send({
+          method: 'sendChatAction',
+          chat_id: chat_id,
+          action: 'upload_document',
+        }),
+      ).resolves.toBe(true),
+    );
+  });
+});
+
+describe('Env', () => {
   it('ignores NoResponse', () => {
     expect.assertions(1);
     wrapTelegram(async (_msg, env) =>
       expect(env.send()).resolves.toBeUndefined(),
-    )(update, log);
+    )(ctx, update);
   });
+
   it('ensures toUpdateRes is implemented', () => {
-    class TestEnv extends Env<string, void> {
-      constructor() {
-        super(log, update, 'foo', () => {});
-        this.toUpdateRes();
-      }
-    }
-    expect(() => new TestEnv()).toThrowErrorMatchingInlineSnapshot(
+    expect(() =>
+      new Env(ctx).toUpdateRes(responseMethod),
+    ).toThrowErrorMatchingInlineSnapshot(
       `"toUpdateRes must be implemented by subclass!"`,
     );
   });

@@ -6,16 +6,30 @@
 [![GitHub CI](https://github.com/miridius/serverless-telegram/workflows/CI/badge.svg)](https://github.com/miridius/serverless-telegram/actions?query=workflow%3ACI)
 [![Coverage](https://api.codeclimate.com/v1/badges/8a8ce85bd1e8605d3732/test_coverage)](https://codeclimate.com/github/miridius/serverless-telegram/test_coverage)
 
-A simple library to remove some of the repetitive work in creating servlerless telegram bots.
+A library to remove some of the repetitive work in creating servlerless telegram bots.
 
 The most support is provided for Azure Function Apps but other platforms can also be used with a little extra work.
 
-Your job is to write a handler function that takes a Message and optionally returns a response. The rest will be taken care of.
+Your job is to write a handler functions that takes a Message (or InlineQuery) and optionally return a response. The rest will be taken care of.
+
+# Table of Contents
+
+- [Breaking Changes v0.3 -&gt; v0.4](#breaking-changes-v03---v04)
+- [Getting Started](#getting-started)
+- [Running a local bot server during development](#running-a-local-bot-server-during-development)
+  - [TL;DR](#tldr)
+  - [Long version](#long-version)
+- [Return Types](#return-types)
+- [Logging](#logging)
+- [Using the Telegram API mid-execution](#using-the-telegram-api-mid-execution)
+- [Uploading Files](#uploading-files)
+- [Handling Inline Queries](#handling-inline-queries)
+- [The env object](#the-env-object)
+- [Development (via <a href="https://github.com/formium/tsdx">TSDX</a>)](#development-via-tsdx)
 
 ## Breaking Changes v0.3 -> v0.4
 
-1. Message handlers and inline handlers are now passed an `env` object, instead of a logger;
-   the logger is now at `env.log`. However, you can use `env.debug`, `env.info`, `env.warn`, and `env.error` to log at a specific level.
+1. Message handlers and inline handlers are now passed an `Env` object, instead of a `Logger`. `env.info`, `env.warn`, and `env.error` are the same as the respective log methods, however `log.verbose` has been renamed to `env.debug` since it actually logs at the debug level anyway.
 2. Raw HTTP Responses can no longer be returned - this was a workaround to support file uploads but is no longer needed since file upload support has been added to the normal responses.
 
 ## Getting Started
@@ -78,6 +92,26 @@ Your job is to write a handler function that takes a Message and optionally retu
 
 ## Running a local bot server during development
 
+### TL;DR
+
+1. Install `env-cmd` and `nodemon` either globally or as devDepenencies:
+   - `npm i -g env-cmd nodemon` _, or_
+   - `npm i -D env-cmd nodemon`
+1. Add a `dev` script to your `package.json`:
+
+   ```json
+     "scripts": {
+       ...
+       "dev": "nodemon -x env-cmd start-dev-server",
+       ...
+     }
+   ```
+
+1. `echo 'BOT_API_TOKEN=<your dev bot's API token>' >> .env`
+1. `npm run dev`
+
+### Long version
+
 Deploying to Azure every time you want to test your bot would be apain, which is why serverless-telegram comes with a built in **dev server**. It will use telegram's `getUpdates` method to listen for bot updates, run them through your function code, and send the response back to the bot API.
 
 The dev server can be run by importing `startDevServer` from `serverless-telegram`, or directly from the command line by calling `npx start-dev-server`, but if you try this straight away, it will complain that the `BOT_API_TOKEN` environment variable is not set. You will need to first create a new development bot (you can't use your production bot even if you wanted to, since that bot has a webhook set which means you can't manually pull updates), and then provide its api token to the dev server via an environment variable. For example:
@@ -96,24 +130,13 @@ Now you can just run: `npx env-cmd start-dev-server`
 
 If you want to automatically restart the server when your code changes, you can use [nodemon](https://www.npmjs.com/package/nodemon) like so: `npx nodemon -x env-cmd start-dev-server`
 
-Combining all of the above into a `package.json` script looks like this:
-
-```json
-  "scripts": {
-    "dev": "nodemon -x env-cmd start-dev-server",
-    ...
-  }
-```
-
 Now try sending a message to your dev bot in telegram and you should see it working!
 
 By default, `start-dev-server` will search your current directory for functions and run a dev server for any that it finds, but you can change this by passing a specific function directory to run only that function, or a path to your project root if you're running from elsewhere.
 
 An optional second argument can be passed to change the [long poll timeout](https://core.telegram.org/bots/api#getupdates)
 
-## Advanced Usage
-
-`createAzureTelegramWebhook` is passed a `MessageHandler`, which is a (usually async) function that takes 2 arguments, a [Message](https://core.telegram.org/bots/api#message) and an execution environment (`Env`). The most used property is `env.log` which is a logger (the Azure [context.log object](https://docs.microsoft.com/en-us/azure/azure-functions/functions-reference-node?tabs=v2#write-trace-output-to-logs)) that must be used for logging instead of console.log. The env object is passed to each call since each function execution has its own individual logging output.
+## Return Types
 
 The message handler can return any of the following data types:
 
@@ -151,33 +174,9 @@ module.exports = createAzureTelegramWebhook(async (msg, log) => {
 
 `createAzureTelegramWebhook` is internally made of two parts: `wrapTelegram` and `wrapAzure`. To use this library for other platforms besides Azure, you can use `wrapTelegram` directly and write your own http wrapper. `wrapTelegram` takes the same arguments as `createAzureTelegramWebhook`, and will return a function that takes the JSON-parsed webhook body (i.e. a telegram update object) and returns the desired response body as a JS object (not stringified)
 
-## Sending Local Files
+## Logging
 
-To upload a local file (e.g. a photo or video), return or send a `ResponseObject` or `ResponseMethod` as normal (see above), but wrap the file path in call to `fs.createReadStream`. For example:
-
-```js
-return { photo: fs.createReadStream('birds.png') };
-```
-
-If you want to save the file ID, see the section "Using the Telegram API mid-execution"
-
-## Handling Inline Queries
-
-Instead of passing `createAzureTelegramWebhook` a `MessageHandler` directly, you can pass it a `HandlerMap` object containing one or both of the keys `message` and `inline`. When updates arrive, they will be routed to the appropriate handler (or ignored if no handler of that type is defined):
-
-```ts
-interface HandlerMap {
-  message?: MessageHandler;
-  inline?: InlineHandler;
-}
-```
-
-An `InlineHandler` is a (usually async) function that takes 2 arguments, a [InlineQuery](https://core.telegram.org/bots/api#inlinequery) and the Env object (containing the [context.log object](https://docs.microsoft.com/en-us/azure/azure-functions/functions-reference-node?tabs=v2#write-trace-output-to-logs) among other things). The inline handler can return any of the following data types:
-
-- Array of `InlineResult` objects, which are just like [InlineQueryResult](https://core.telegram.org/bots/api#inlinequeryresult)s but for convenience the `id` and `type` fields are optional - when not specified the ID will the array index and the type will be inferred automatically from the other parameters.
-- [AnswerInlineQuery](https://core.telegram.org/bots/api#answerinlinequery) object, in case you want to specify additional options for example `cache_time`. For convenience the inline_query_id can be left out and will be copied from the incoming query. The results array can contain `InlineResult` objects (i.e. the `id` and `type` fields are optional).
-- `ResponseMethod` - Instead of answering the inline query, you can send any of the telegram bot API [methods](https://core.telegram.org/bots/api#available-methods). This must be an object with the `method` key set to the method name (e.g. 'sendMessage'), along with any other desired parameters. Note that since inline queries do not come from a chat, `chat_id` cannot be automatically set and must be provided by you if required
-- `NoResponse` - any falsy value (or void) will signify that no reply should be sent.
+`createAzureTelegramWebhook` is passed a `MessageHandler`, which is a (usually async) function that takes 2 arguments, a [Message](https://core.telegram.org/bots/api#message) and a [MessageEnv](#the-env-object). Among other things, the `MessageEnv` object _must_ be used for logging instead of console.log and as a result each function execution has its own individual logging output.
 
 ## Using the Telegram API mid-execution
 
@@ -206,7 +205,7 @@ env.send({ action: 'upload_video' });
 
 // send the video
 const result = await env.send({
-  video: fs.createReadStream(localFilePath),
+  video: toFileUrl(localFilePath),
   width: 640,
   height: 480,
   caption: 'Cute cat video',
@@ -219,6 +218,58 @@ env.debug('fileId:', fileId);
 // the file ID can be used to send the same video again without re-uploading:
 if (fileId) return { video: fileId };
 ```
+
+## Uploading Files
+
+To upload a local file (e.g. a photo or video), as long as the filename or path includes at least one '.' or '/' then it will be automatically detected and uploaded as a file (as opposed to a web URL or cached file ID). For example:
+
+```js
+return { photo: 'birds.png' };
+// path is relative to the nodejs process working directory
+```
+
+To guarantee detection, send a `URL` object using the `'file:'` protocol. For convinence a utility function `toFileUrl` is provided:
+
+```js
+const { utils } = require('serverless-telegram');
+
+return { photo: utils.toFileUrl('birds.png') };
+// equivalent to:
+return { photo: new URL(`file://${path.resolve('birds.png')}`) };
+```
+
+To save the file ID, see [Using the Telegram API mid-execution](#using-the-telegram-api-mid-execution)
+
+## Handling Inline Queries
+
+Instead of passing `createAzureTelegramWebhook` a `MessageHandler` directly, you can pass it a `HandlerMap` object containing one or both of the keys `message` and `inline`. When updates arrive, they will be routed to the appropriate handler (or ignored if no handler of that type is defined):
+
+```ts
+interface HandlerMap {
+  message?: MessageHandler;
+  inline?: InlineHandler;
+}
+```
+
+An `InlineHandler` is a (usually async) function that takes 2 arguments, a [InlineQuery](https://core.telegram.org/bots/api#inlinequery) and the Env object (containing the [context.log object](https://docs.microsoft.com/en-us/azure/azure-functions/functions-reference-node?tabs=v2#write-trace-output-to-logs) among other things). The inline handler can return any of the following data types:
+
+- Array of `InlineResult` objects, which are just like [InlineQueryResult](https://core.telegram.org/bots/api#inlinequeryresult)s but for convenience the `id` and `type` fields are optional - when not specified the ID will the array index and the type will be inferred automatically from the other parameters.
+- [AnswerInlineQuery](https://core.telegram.org/bots/api#answerinlinequery) object, in case you want to specify additional options for example `cache_time`. For convenience the inline_query_id can be left out and will be copied from the incoming query. The results array can contain `InlineResult` objects (i.e. the `id` and `type` fields are optional).
+- `ResponseMethod` - Instead of answering the inline query, you can send any of the telegram bot API [methods](https://core.telegram.org/bots/api#available-methods). This must be an object with the `method` key set to the method name (e.g. 'sendMessage'), along with any other desired parameters. Note that since inline queries do not come from a chat, `chat_id` cannot be automatically set and must be provided by you if required
+- `NoResponse` - any falsy value (or void) will signify that no reply should be sent.
+
+## The `env` object
+
+The second argument passed to message and inline handlers is a `MessageEnv` or `InlineEnv` respectively. The available properties are:
+
+- `context`: the Azure [context object](https://docs.microsoft.com/en-us/azure/azure-functions/functions-reference-node?tabs=v2#context-object)
+- `message` (only on `MessageEnv`): the incoming `Message`
+- `inlineQuery` (only on `InlineEnv`): the incoming `InlineQuery`
+- `debug(...data)`: function which logs to the debug log level (pointer to the _incorrectly named_ `context.log.verbose` )
+- `info(...data)`: function to logs at info level (`-> context.log.info`)
+- `warn(...data)`: function to logs at warn level (`-> context.log.warn`)
+- `error(...data)`: function to logs at error level (`-> context.log.error`)
+- `async send(res)`: Call the Telegram Bot API asynchronously _during_ handler execution, see [Using the Telegram API mid-execution](#using-the-telegram-api-mid-execution)
 
 ## Development (via [TSDX](https://github.com/formium/tsdx))
 

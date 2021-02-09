@@ -1,11 +1,9 @@
-import type { Logger } from '../wrap-azure';
+import { Context, Logger } from '../wrap-azure';
 import type {
-  Handler,
   InlineQuery,
   InlineResponse,
   Message,
   MessageResponse,
-  Update,
   UpdateResponse,
 } from './types';
 import {
@@ -14,40 +12,22 @@ import {
   toResponseMethod,
 } from './telegram-api';
 
-export class Env<T, R> {
-  log: Logger;
+export class Env<R> {
+  context: Context;
   debug: Logger['verbose'];
   info: Logger['info'];
   warn: Logger['warn'];
   error: Logger['error'];
 
-  update: Update;
-  msgOrInline: T;
-  handler: Handler<T, any, R>;
-
   // let the user add additional properties if they want
-  [k: string]: any;
+  // [k: string]: any;
 
-  constructor(
-    log: Logger,
-    update: Update,
-    req: T,
-    handler: Handler<T, any, R>,
-  ) {
-    this.log = log;
-    this.debug = log.verbose;
-    this.info = log.info;
-    this.warn = log.warn;
-    this.error = log.error;
-
-    this.update = update;
-    this.msgOrInline = req;
-    this.handler = handler;
-  }
-
-  /** Internal method used by serverless-telegram to run the handler */
-  protected async execute() {
-    return this.toUpdateRes(await this.handler(this.msgOrInline, this));
+  constructor(context: Context) {
+    this.context = context;
+    this.debug = context.log.verbose;
+    this.info = context.log.info;
+    this.warn = context.log.warn;
+    this.error = context.log.error;
   }
 
   /**
@@ -57,24 +37,43 @@ export class Env<T, R> {
    * (i.e. `MessageResponse` or `InlineResponse`)
    * @returns a promise resolving to the API call result (if any)
    */
-  async send(res: R) {
+  async send(res: R): Promise<any> {
     const req = this.toUpdateRes(res);
-    return req && callTgApi(req);
+    if (req) {
+      this.debug('calling telegram API:', req);
+      const apiRes = await callTgApi(req);
+      this.debug('API result:', apiRes);
+      return apiRes;
+    }
   }
 
-  protected toUpdateRes(_res: R): UpdateResponse {
+  toUpdateRes(_res: R): UpdateResponse {
     throw new Error('toUpdateRes must be implemented by subclass!');
   }
 }
 
-export class MessageEnv extends Env<Message, MessageResponse> {
-  protected toUpdateRes(res: MessageResponse) {
-    return toResponseMethod(res, this.msgOrInline.chat.id);
+export class MessageEnv extends Env<MessageResponse> {
+  message: Message;
+
+  constructor(context: Context, message: Message) {
+    super(context);
+    this.message = message;
+  }
+
+  toUpdateRes(res: MessageResponse) {
+    return toResponseMethod(res, this.message.chat.id);
   }
 }
 
-export class InlineEnv extends Env<InlineQuery, InlineResponse> {
-  protected toUpdateRes(res: InlineResponse) {
-    return toAnswerInlineMethod(res, this.msgOrInline.id);
+export class InlineEnv extends Env<InlineResponse> {
+  inlineQuery: InlineQuery;
+
+  constructor(context: Context, inlineQuery: InlineQuery) {
+    super(context);
+    this.inlineQuery = inlineQuery;
+  }
+
+  toUpdateRes(res: InlineResponse) {
+    return toAnswerInlineMethod(res, this.inlineQuery.id);
   }
 }
