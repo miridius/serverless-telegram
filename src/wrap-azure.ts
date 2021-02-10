@@ -31,9 +31,7 @@ const toHttpResponse = (output?: any): HttpResponse | undefined => {
 export const wrapAzure = (handler: BodyHandler): AzureHttpFunction => async (
   ctx: Context,
   { body }: HttpRequest,
-): Promise<HttpResponse | undefined> => {
-  const res = toHttpResponse(body && (await handler(ctx, body)));
-  return (ctx.res ||= res);
-};
+): Promise<HttpResponse | undefined> =>
+  (ctx.res = toHttpResponse(body && (await handler(ctx, body))));
 
 export default wrapAzure;

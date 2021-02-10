@@ -10,9 +10,9 @@ A library to remove some of the repetitive work in creating servlerless telegram
 
 The most support is provided for Azure Function Apps but other platforms can also be used with a little extra work.
 
-Your job is to write a handler functions that takes a Message (or InlineQuery) and optionally return a response. The rest will be taken care of.
+Your job is to write handler functions that receive a message (or inline query) and optionally return a response. The rest will be taken care of.
 
-# Table of Contents
+## Table of Contents
 
 - [Breaking Changes v0.3 -&gt; v0.4](#breaking-changes-v03---v04)
 - [Getting Started](#getting-started)
