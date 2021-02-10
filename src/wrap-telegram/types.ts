@@ -1,6 +1,7 @@
 import type {
   AnswerInlineQueryOptions,
   Chat,
+  ChatAction,
   InlineQuery,
   InlineQueryResult,
   InlineQueryResultArticle,
@@ -29,7 +30,6 @@ import type {
   User,
 } from 'node-telegram-bot-api';
 import type { Env, MessageEnv, InlineEnv } from './env';
-import type { ReadStream } from 'fs';
 
 export type {
   Chat,
@@ -43,15 +43,15 @@ export type {
   User,
 };
 
+export type Handler<Req, Env, Res> = (req: Req, env: Env) => Promise<Res> | Res;
+
+export type MessageHandler = Handler<Message, MessageEnv, MessageResponse>;
+export type InlineHandler = Handler<InlineQuery, InlineEnv, InlineResponse>;
+
 export interface HandlerMap {
   message?: MessageHandler;
   inline?: InlineHandler;
 }
-
-export type MessageHandler = (
-  message: Message,
-  env: MessageEnv,
-) => Promise<MessageResponse> | MessageResponse;
 
 export type MessageResponse =
   | string
@@ -62,26 +62,36 @@ export type MessageResponse =
 export interface ResponseObject {
   // one of the following keys should be included
   text?: string;
-  photo?: string | ReadStream;
-  audio?: string | ReadStream;
-  document?: string | ReadStream;
-  video?: string | ReadStream;
-  animation?: string | ReadStream;
-  voice?: string | ReadStream;
-  video_note?: string | ReadStream;
+  photo?: string | URL;
+  audio?: string | URL;
+  document?: string | URL;
+  video?: string | URL;
+  animation?: string | URL;
+  voice?: string | URL;
+  video_note?: string | URL;
   media?: InputMedia[]; // TODO: simplify & support file uploads
   address?: string;
   latitude?: number;
   phone_number?: string;
   question?: string;
   emoji?: string;
-  action?: string;
-  sticker?: string | ReadStream;
+  action?: ChatAction;
+  sticker?: string;
   // OPTIONAL: any additional parameters for the telegram api method
   [param: string]: any;
   // OPTIONAL: redirect response to a different chat than the message came from
   chat_id?: number;
 }
+
+export const responseFileParams = new Set([
+  'photo',
+  'audio',
+  'document',
+  'video',
+  'animation',
+  'voice',
+  'video_note',
+]);
 
 export interface ResponseMethod extends ResponseObject {
   method:
@@ -105,16 +115,6 @@ export interface ResponseMethod extends ResponseObject {
 }
 
 export type NoResponse = void | null | undefined | false | '' | 0;
-
-export type UpdateResponse =
-  | ResponseMethod
-  | AnswerInlineQueryMethod
-  | NoResponse;
-
-export type InlineHandler = (
-  inline: InlineQuery,
-  env: InlineEnv,
-) => Promise<InlineResponse> | InlineResponse;
 
 export type InlineResponse =
   | InlineResult[]
@@ -158,6 +158,11 @@ export interface AnswerInlineQueryMethod extends AnswerInlineQueryOptions {
   inline_query_id: string;
   results: InlineQueryResult[];
 }
+
+export type UpdateResponse =
+  | ResponseMethod
+  | AnswerInlineQueryMethod
+  | NoResponse;
 
 export type TgApiRequest =
   | ResponseMethod

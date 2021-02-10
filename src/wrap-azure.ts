@@ -1,9 +1,9 @@
-import { AzureFunction, Context, HttpRequest, Logger } from '@azure/functions';
-export { AzureFunction, Context, HttpRequest, Logger };
+import { Context, HttpRequest, Logger } from '@azure/functions';
+export { Context, HttpRequest, Logger };
 
 export type BodyHandler<T = any> = (
+  ctx: Context,
   body: unknown,
-  log: Logger,
 ) => T | Promise<T>;
 
 export interface HttpResponse {
@@ -11,6 +11,11 @@ export interface HttpResponse {
   body?: any;
   headers?: Record<string, string>;
 }
+
+export type AzureHttpFunction = (
+  ctx: Context,
+  req: HttpRequest,
+) => Promise<HttpResponse | undefined>;
 
 export const isHttpResponse = (r?: any): r is HttpResponse =>
   typeof r === 'object' && ('status' in r || 'body' in r || 'headers' in r);
@@ -23,10 +28,12 @@ const toHttpResponse = (output?: any): HttpResponse | undefined => {
   return { body: output, headers: { 'Content-Type': 'application/json' } };
 };
 
-export const wrapAzure = (handler: BodyHandler): AzureFunction => async (
+export const wrapAzure = (handler: BodyHandler): AzureHttpFunction => async (
   ctx: Context,
   { body }: HttpRequest,
-): Promise<HttpResponse | void> =>
-  (ctx.res = toHttpResponse(body && (await handler(body, ctx.log))));
+): Promise<HttpResponse | undefined> => {
+  const res = toHttpResponse(body && (await handler(ctx, body)));
+  return (ctx.res ||= res);
+};
 
 export default wrapAzure;

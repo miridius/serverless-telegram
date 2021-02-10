@@ -1,0 +1,187 @@
+[
+  {
+    "scope": "https://api.telegram.org:443",
+    "method": "POST",
+    "path": "/bot1111:fake_token/getUpdates",
+    "body": {
+      "timeout": 1
+    },
+    "status": 200,
+    "response": {
+      "ok": true,
+      "result": [
+        {
+          "update_id": 320849217,
+          "message": {
+            "message_id": 31,
+            "from": {
+              "id": 2222,
+              "is_bot": false,
+              "first_name": "Dave",
+              "last_name": "Rolle",
+              "username": "DavidRolle",
+              "language_code": "en"
+            },
+            "chat": {
+              "id": 2222,
+              "first_name": "Dave",
+              "last_name": "Rolle",
+              "username": "DavidRolle",
+              "type": "private"
+            },
+            "date": 1612458152,
+            "text": "hello"
+          }
+        },
+        {
+          "update_id": 320849218,
+          "message": {
+            "message_id": 33,
+            "from": {
+              "id": 2222,
+              "is_bot": false,
+              "first_name": "Dave",
+              "last_name": "Rolle",
+              "username": "DavidRolle",
+              "language_code": "en"
+            },
+            "chat": {
+              "id": 2222,
+              "first_name": "Dave",
+              "last_name": "Rolle",
+              "username": "DavidRolle",
+              "type": "private"
+            },
+            "date": 1612458245,
+            "text": "hello"
+          }
+        }
+      ]
+    },
+    "rawHeaders": [
+      "Server",
+      "nginx/1.16.1",
+      "Date",
+      "Thu, 04 Feb 2021 17:06:46 GMT",
+      "Content-Type",
+      "application/json",
+      "Content-Length",
+      "648",
+      "Connection",
+      "close",
+      "Strict-Transport-Security",
+      "max-age=31536000; includeSubDomains; preload",
+      "Access-Control-Allow-Origin",
+      "*",
+      "Access-Control-Allow-Methods",
+      "GET, POST, OPTIONS",
+      "Access-Control-Expose-Headers",
+      "Content-Length,Content-Type,Date,Server,Connection"
+    ],
+    "responseIsBinary": false
+  },
+  {
+    "scope": "https://api.telegram.org:443",
+    "method": "POST",
+    "path": "/bot1111:fake_token/sendMessage",
+    "body": {
+      "chat_id": 2222,
+      "text": "You said: hello"
+    },
+    "status": 200,
+    "response": {
+      "ok": true,
+      "result": {
+        "message_id": 38,
+        "from": {
+          "id": 1111,
+          "is_bot": true,
+          "first_name": "Dev Bot",
+          "username": "dev_bot"
+        },
+        "chat": {
+          "id": 2222,
+          "first_name": "Dave",
+          "last_name": "Rolle",
+          "username": "DavidRolle",
+          "type": "private"
+        },
+        "date": 1612458406,
+        "text": "You said: hello"
+      }
+    },
+    "rawHeaders": [
+      "Server",
+      "nginx/1.16.1",
+      "Date",
+      "Thu, 04 Feb 2021 17:06:46 GMT",
+      "Content-Type",
+      "application/json",
+      "Content-Length",
+      "284",
+      "Connection",
+      "close",
+      "Strict-Transport-Security",
+      "max-age=31536000; includeSubDomains; preload",
+      "Access-Control-Allow-Origin",
+      "*",
+      "Access-Control-Allow-Methods",
+      "GET, POST, OPTIONS",
+      "Access-Control-Expose-Headers",
+      "Content-Length,Content-Type,Date,Server,Connection"
+    ],
+    "responseIsBinary": false
+  },
+  {
+    "scope": "https://api.telegram.org:443",
+    "method": "POST",
+    "path": "/bot1111:fake_token/sendMessage",
+    "body": {
+      "chat_id": 2222,
+      "text": "You said: hello"
+    },
+    "status": 200,
+    "response": {
+      "ok": true,
+      "result": {
+        "message_id": 39,
+        "from": {
+          "id": 1111,
+          "is_bot": true,
+          "first_name": "Dev Bot",
+          "username": "dev_bot"
+        },
+        "chat": {
+          "id": 2222,
+          "first_name": "Dave",
+          "last_name": "Rolle",
+          "username": "DavidRolle",
+          "type": "private"
+        },
+        "date": 1612458406,
+        "text": "You said: hello"
+      }
+    },
+    "rawHeaders": [
+      "Server",
+      "nginx/1.16.1",
+      "Date",
+      "Thu, 04 Feb 2021 17:06:46 GMT",
+      "Content-Type",
+      "application/json",
+      "Content-Length",
+      "284",
+      "Connection",
+      "close",
+      "Strict-Transport-Security",
+      "max-age=31536000; includeSubDomains; preload",
+      "Access-Control-Allow-Origin",
+      "*",
+      "Access-Control-Allow-Methods",
+      "GET, POST, OPTIONS",
+      "Access-Control-Expose-Headers",
+      "Content-Length,Content-Type,Date,Server,Connection"
+    ],
+    "responseIsBinary": false
+  }
+]
