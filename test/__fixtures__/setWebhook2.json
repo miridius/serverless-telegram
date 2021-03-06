@@ -1,0 +1,78 @@
+[
+  {
+    "scope": "https://api.telegram.org:443",
+    "method": "POST",
+    "path": "/bot1111:fake_token/setWebhook",
+    "body": {
+      "url": "https://some-other-url.com",
+      "max_connections": 100,
+      "allowed_updates": ["message", "edited_message"]
+    },
+    "status": 200,
+    "response": {
+      "ok": true,
+      "result": true,
+      "description": "Webhook was set"
+    },
+    "rawHeaders": [
+      "Server",
+      "nginx/1.16.1",
+      "Date",
+      "Sat, 06 Mar 2021 23:11:22 GMT",
+      "Content-Type",
+      "application/json",
+      "Content-Length",
+      "57",
+      "Connection",
+      "close",
+      "Strict-Transport-Security",
+      "max-age=31536000; includeSubDomains; preload",
+      "Access-Control-Allow-Origin",
+      "*",
+      "Access-Control-Allow-Methods",
+      "GET, POST, OPTIONS",
+      "Access-Control-Expose-Headers",
+      "Content-Length,Content-Type,Date,Server,Connection"
+    ],
+    "responseIsBinary": false
+  },
+  {
+    "scope": "https://api.telegram.org:443",
+    "method": "POST",
+    "path": "/bot1111:fake_token/getWebhookInfo",
+    "body": {},
+    "status": 200,
+    "response": {
+      "ok": true,
+      "result": {
+        "url": "https://example.com",
+        "has_custom_certificate": false,
+        "pending_update_count": 0,
+        "max_connections": 100,
+        "ip_address": "1.2.3.4",
+        "allowed_updates": ["message", "edited_message"]
+      }
+    },
+    "rawHeaders": [
+      "Server",
+      "nginx/1.16.1",
+      "Date",
+      "Sat, 06 Mar 2021 23:11:22 GMT",
+      "Content-Type",
+      "application/json",
+      "Content-Length",
+      "297",
+      "Connection",
+      "close",
+      "Strict-Transport-Security",
+      "max-age=31536000; includeSubDomains; preload",
+      "Access-Control-Allow-Origin",
+      "*",
+      "Access-Control-Allow-Methods",
+      "GET, POST, OPTIONS",
+      "Access-Control-Expose-Headers",
+      "Content-Length,Content-Type,Date,Server,Connection"
+    ],
+    "responseIsBinary": false
+  }
+]
