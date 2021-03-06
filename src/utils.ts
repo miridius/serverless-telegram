@@ -1,5 +1,4 @@
-import type { FileBuffer } from './wrap-telegram/types';
-import { SetWebHookOptions } from 'node-telegram-bot-api';
+import type { FileBuffer, SetWebHookOptions } from './wrap-telegram/types';
 import { resolve } from 'path';
 import { URL } from 'url';
 import { callTgApi } from './wrap-telegram/telegram-api';
@@ -21,11 +20,11 @@ export const toFileUrl = (filePath: string | URL) => {
   return new URL(filePath);
 };
 
-const removeFalsyProps = (obj: object) =>
-  Object.fromEntries(Object.entries(obj).filter(([, v]) => v));
+const removeFalsyProps = <T extends object>(obj: T): Partial<T> =>
+  Object.fromEntries(Object.entries(obj).filter(([, v]) => v)) as Partial<T>;
 
 export const setWebhook = async (opts: SetWebHookOptions) => {
-  opts = removeFalsyProps(opts);
+  opts = removeFalsyProps(opts) as SetWebHookOptions;
 
   console.debug('Setting webhook:', opts);
   await callTgApi({ method: 'setWebhook', ...opts });
@@ -42,4 +41,6 @@ export const setWebhook = async (opts: SetWebHookOptions) => {
       throw new Error(`Webhook update failed - ${opt}s don't match!`);
     }
   });
+
+  return res;
 };

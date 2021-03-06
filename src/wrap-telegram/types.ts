@@ -60,16 +60,18 @@ export type MessageResponse =
   | ResponseMethod
   | NoResponse;
 
+export type InputFile = string | URL | FileBuffer;
+
 export interface ResponseObject {
   // one of the following keys should be included
   text?: string;
-  photo?: string | URL | FileBuffer;
-  audio?: string | URL | FileBuffer;
-  document?: string | URL | FileBuffer;
-  video?: string | URL | FileBuffer;
-  animation?: string | URL | FileBuffer;
-  voice?: string | URL | FileBuffer;
-  video_note?: string | URL | FileBuffer;
+  photo?: InputFile;
+  audio?: InputFile;
+  document?: InputFile;
+  video?: InputFile;
+  animation?: InputFile;
+  voice?: InputFile;
+  video_note?: InputFile;
   media?: InputMedia[]; // TODO: simplify & support file uploads
   address?: string;
   latitude?: number;
@@ -223,3 +225,10 @@ export const INLINE_TYPE_MAPPING: Mapping<InlineResult, 'type'> = {
   video_url: 'video',
   voice_url: 'voice',
 };
+
+export interface SetWebHookOptions {
+  url: string;
+  certificate?: InputFile;
+  max_connections?: number;
+  allowed_updates?: string[];
+}

@@ -16,6 +16,7 @@ export type {
   InlineQuery,
   InlineQueryResult,
   InlineResult,
+  InputFile,
   Message,
   MessageHandler,
   MessageResponse,
