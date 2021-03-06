@@ -1,3 +1,4 @@
+import { AppendOptions } from 'form-data';
 import type {
   AnswerInlineQueryOptions,
   Chat,
@@ -62,13 +63,13 @@ export type MessageResponse =
 export interface ResponseObject {
   // one of the following keys should be included
   text?: string;
-  photo?: string | URL;
-  audio?: string | URL;
-  document?: string | URL;
-  video?: string | URL;
-  animation?: string | URL;
-  voice?: string | URL;
-  video_note?: string | URL;
+  photo?: string | URL | FileBuffer;
+  audio?: string | URL | FileBuffer;
+  document?: string | URL | FileBuffer;
+  video?: string | URL | FileBuffer;
+  animation?: string | URL | FileBuffer;
+  voice?: string | URL | FileBuffer;
+  video_note?: string | URL | FileBuffer;
   media?: InputMedia[]; // TODO: simplify & support file uploads
   address?: string;
   latitude?: number;
@@ -81,6 +82,11 @@ export interface ResponseObject {
   [param: string]: any;
   // OPTIONAL: redirect response to a different chat than the message came from
   chat_id?: number;
+}
+
+export interface FileBuffer extends AppendOptions {
+  buffer: Buffer;
+  filename: string;
 }
 
 export const responseFileParams = new Set([

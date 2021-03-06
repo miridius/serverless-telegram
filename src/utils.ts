@@ -1,8 +1,14 @@
+import type { FileBuffer } from './wrap-telegram/types';
 import { resolve } from 'path';
 import { URL } from 'url';
 
 export const isObject = (x: unknown): x is Exclude<object, null> =>
   typeof x === 'object' && x !== null;
+
+export const isFileBuffer = (v: unknown): v is FileBuffer =>
+  isObject(v) &&
+  Buffer.isBuffer((v as FileBuffer).buffer) &&
+  typeof (v as FileBuffer).filename === 'string';
 
 export const isFileUrl = (v: unknown): v is URL =>
   v instanceof URL && v.protocol === 'file:';
