@@ -10,6 +10,7 @@ export * as utils from './utils';
 export type {
   AnswerInlineQuery,
   Chat,
+  FileBuffer,
   HandlerMap,
   InlineHandler,
   InlineQuery,

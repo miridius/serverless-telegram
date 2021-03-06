@@ -13,7 +13,7 @@ import {
   UpdateResponse,
   responseFileParams,
 } from './types';
-import { isFileUrl, isObject, toFileUrl } from '../utils';
+import { isFileBuffer, isFileUrl, isObject, toFileUrl } from '../utils';
 import { createReadStream } from 'fs';
 import fetch, { RequestInit } from 'node-fetch';
 import FormData from 'form-data';
@@ -112,16 +112,27 @@ const encodeParamVal = (k: string, v: unknown) =>
     ? JSON.stringify(v)
     : v;
 
+const append = (form: FormData, k: string, v: unknown) => {
+  if (isFileBuffer(v)) {
+    const { buffer, ...appendOpts } = v;
+    form.append(k, buffer, appendOpts);
+  } else {
+    form.append(k, encodeParamVal(k, v));
+  }
+};
+
 const createForm = (params: Record<string, any>) => {
   const form = new FormData();
   Object.entries(params)
     .filter(([, v]) => v !== undefined)
-    .forEach(([k, v]) => form.append(k, encodeParamVal(k, v)));
+    .forEach(([k, v]) => append(form, k, v));
   return form;
 };
 
 export const hasFileParams = (params: Record<string, any>) =>
-  Object.entries(params).some(isFilePathParam);
+  Object.entries(params).some(
+    ([k, v]) => isFileBuffer(v) || isFilePathParam([k, v]),
+  );
 
 const getOpts = (params: Record<string, any>, useForm?: boolean) => {
   const opts: RequestInit = { method: 'post' };

@@ -13,11 +13,11 @@ import {
 } from './telegram-api';
 
 export class Env<R> {
-  context: Context;
-  debug: Logger['verbose'];
-  info: Logger['info'];
-  warn: Logger['warn'];
-  error: Logger['error'];
+  readonly context: Context;
+  readonly debug: Logger['verbose'];
+  readonly info: Logger['info'];
+  readonly warn: Logger['warn'];
+  readonly error: Logger['error'];
 
   // let the user add additional properties if they want
   // [k: string]: any;
@@ -53,7 +53,7 @@ export class Env<R> {
 }
 
 export class MessageEnv extends Env<MessageResponse> {
-  message: Message;
+  readonly message: Message;
 
   constructor(context: Context, message: Message) {
     super(context);
@@ -66,7 +66,7 @@ export class MessageEnv extends Env<MessageResponse> {
 }
 
 export class InlineEnv extends Env<InlineResponse> {
-  inlineQuery: InlineQuery;
+  readonly inlineQuery: InlineQuery;
 
   constructor(context: Context, inlineQuery: InlineQuery) {
     super(context);

@@ -19,6 +19,7 @@ import {
 } from '../src/wrap-telegram/telegram-api';
 import { Env, MessageEnv, InlineEnv } from '../src';
 import { toFileUrl } from '../src/utils';
+import fs from 'fs';
 
 // Since form boundary is generated randomly we need to make it deterministic
 Math.random = jest.fn(() => 0.5);
@@ -67,8 +68,9 @@ const videoResponse: ResponseMethod = {
   video,
 };
 
+const docPath = __dirname + '/__fixtures__/test-file.txt';
 const sendDocument = {
-  document: toFileUrl(__dirname + '/__fixtures__/test-file.txt'),
+  document: toFileUrl(docPath),
   reply_to_message_id: 23,
   reply_markup: {
     inline_keyboard: [[{ text: 'Click me', url: 'https://example.com' }]],
@@ -169,9 +171,19 @@ describe('message response parsing', () => {
   it('understands file URL strings', () => {
     return withNockback('sendDocument.json', () =>
       expect(
+        testResponse({ ...sendDocument, document: `file://${docPath}` }),
+      ).resolves.toBeUndefined(),
+    );
+  });
+  it('supports sending files as buffers', () => {
+    return withNockback('sendDocument.json', () =>
+      expect(
         testResponse({
           ...sendDocument,
-          document: `file://${sendDocument.document.pathname}`,
+          document: {
+            buffer: fs.readFileSync(docPath),
+            filename: 'test-file.txt',
+          },
         }),
       ).resolves.toBeUndefined(),
     );
