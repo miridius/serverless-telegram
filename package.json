@@ -25,7 +25,8 @@
   "typings": "dist/index.d.ts",
   "module": "dist/serverless-telegram.esm.js",
   "bin": {
-    "start-dev-server": "bin/start-dev-server.js"
+    "start-dev-server": "bin/start-dev-server.js",
+    "set-webhook": "bin/set-webhook.js"
   },
   "files": [
     "dist",

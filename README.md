@@ -146,6 +146,12 @@ This library has a functional-style API in order to facilitate easier testing. Y
 
 The return value should then be exported by your function's main script.
 
+Once deployed to your Azure app, you'll need to get the function's URL (you can do this via the VS code extension) and set it as your bot's webhook. To do the latter step, a CLI tool is provided for convenience:
+
+```sh
+BOT_API_TOKEN=<your-bot-token> npx set-webhook <your-function-url>
+```
+
 ### Example Setup
 
 ```js
