@@ -1,6 +1,6 @@
 import { HttpRequest } from '@azure/functions';
+import { HttpResponse, wrapAzure } from '../src/wrap-http';
 import { ctx } from './helpers';
-import wrapAzure, { HttpResponse } from '../src/wrap-azure';
 
 const jsonObj = {
   message: { text: 'more good things please', chat: { id: 1 } },
@@ -53,7 +53,7 @@ const emptyRequest: HttpRequest = {
 };
 
 describe('wrapAzure', () => {
-  const echo = wrapAzure(async (_, x: any) => x);
+  const echo = wrapAzure(async (x: any) => x);
 
   it('handles JSON objects', () => {
     return expect(echo(ctx, jsonRequest)).resolves.toEqual({

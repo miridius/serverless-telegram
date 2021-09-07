@@ -1,3 +1,11 @@
+import fs from 'fs';
+import { Env, InlineEnv, MessageEnv } from '../src';
+import { toFileUrl } from '../src/utils';
+import wrapTelegram from '../src/wrap-telegram';
+import {
+  callTgApi,
+  toAnswerInlineMethod,
+} from '../src/wrap-telegram/telegram-api';
 import type {
   Chat,
   InlineQuery,
@@ -11,15 +19,7 @@ import type {
   TgApiRequest,
   Update,
 } from '../src/wrap-telegram/types';
-import wrapTelegram from '../src/wrap-telegram';
 import { ctx, withNockback } from './helpers';
-import {
-  callTgApi,
-  toAnswerInlineMethod,
-} from '../src/wrap-telegram/telegram-api';
-import { Env, MessageEnv, InlineEnv } from '../src';
-import { toFileUrl } from '../src/utils';
-import fs from 'fs';
 
 // Since form boundary is generated randomly we need to make it deterministic
 Math.random = jest.fn(() => 0.5);
@@ -90,7 +90,7 @@ describe('update handling', () => {
   const echoHandler = wrapTelegram(async ({ text }) => text);
 
   it('passes messages to the handler and forms the response method', async () => {
-    expect(await echoHandler(ctx, update)).toEqual(responseMethod);
+    expect(await echoHandler(update, ctx)).toEqual(responseMethod);
   });
 
   it('works with message & handlers passed in a map', async () => {
@@ -105,8 +105,8 @@ describe('update handling', () => {
         query: 'query text',
       } as InlineQuery,
     };
-    expect(await handler(ctx, update)).toEqual(responseMethod);
-    expect(await handler(ctx, inlineUpdate)).toMatchInlineSnapshot(`
+    expect(await handler(update, ctx)).toEqual(responseMethod);
+    expect(await handler(inlineUpdate, ctx)).toMatchInlineSnapshot(`
       Object {
         "inline_query_id": "abc",
         "method": "answerInlineQuery",
@@ -123,33 +123,33 @@ describe('update handling', () => {
   });
 
   it("ignores updates that don't contain a message", async () => {
-    expect(await echoHandler(ctx, { update_id: 1 })).toBeUndefined();
+    expect(await echoHandler({ update_id: 1 }, ctx)).toBeUndefined();
   });
 
   it('ignores requests that are not a telegram update', async () => {
-    expect(await echoHandler(ctx, undefined)).toBeUndefined();
-    expect(await echoHandler(ctx, false)).toBeUndefined();
-    expect(await echoHandler(ctx, 1)).toBeUndefined();
-    expect(await echoHandler(ctx, '')).toBeUndefined();
-    expect(await echoHandler(ctx, {})).toBeUndefined();
+    expect(await echoHandler(undefined, ctx)).toBeUndefined();
+    expect(await echoHandler(false, ctx)).toBeUndefined();
+    expect(await echoHandler(1, ctx)).toBeUndefined();
+    expect(await echoHandler('', ctx)).toBeUndefined();
+    expect(await echoHandler({}, ctx)).toBeUndefined();
   });
 
   it('handles errors', async () => {
     const throwingHandler: MessageHandler = async ({ text }) => {
       throw new Error(text);
     };
-    const response = await wrapTelegram(throwingHandler, 123)(ctx, update);
+    const response = await wrapTelegram(throwingHandler, 123)(update, ctx);
     expect(response).toHaveProperty('chat_id', 123);
     expect(response).toHaveProperty('method', 'sendMessage');
     expect(response).toHaveProperty('text');
 
-    expect(wrapTelegram(throwingHandler)(ctx, update)).rejects.toThrow(text);
+    expect(wrapTelegram(throwingHandler)(update, ctx)).rejects.toThrow(text);
   });
 });
 
 describe('message response parsing', () => {
   const testResponse = (res: MessageResponse) =>
-    wrapTelegram(() => res)(ctx, update);
+    wrapTelegram(() => res)(update, ctx);
 
   it('interprets a string as a text message', () => {
     return expect(testResponse(text)).resolves.toEqual(responseMethod);
@@ -244,7 +244,7 @@ describe('inline response parsing', () => {
 });
 
 describe('MessageEnv', () => {
-  it('is passed to message handler with correct properties', () => {
+  it('is passed to message handler with correct properties', async () => {
     expect.assertions(2);
     const handler = (msg: Message, env: MessageEnv) => {
       expect(msg).toEqual(message);
@@ -257,7 +257,7 @@ describe('MessageEnv', () => {
         message,
       });
     };
-    return wrapTelegram(handler)(ctx, update);
+    await wrapTelegram(handler)(update, ctx);
   });
 
   it('supports calling the telegram API', () => {
@@ -284,7 +284,7 @@ describe('InlineEnv', () => {
         inlineQuery,
       });
     };
-    return wrapTelegram({ inline: handler })(ctx, inlineUpdate);
+    return wrapTelegram({ inline: handler })(inlineUpdate, ctx);
   });
 
   it('supports calling the telegram API', () => {
@@ -306,7 +306,7 @@ describe('Env', () => {
     expect.assertions(1);
     wrapTelegram(async (_msg, env) =>
       expect(env.send()).resolves.toBeUndefined(),
-    )(ctx, update);
+    )(update, ctx);
   });
 
   it('ensures toUpdateRes is implemented', () => {

@@ -1,11 +1,11 @@
-import { withNockback } from './helpers';
+import { resolve } from 'path';
 import createAzureTelegramWebhook, {
-  startDevServer,
   DevServer,
+  startDevServer,
   Update,
 } from '../src';
-import { calculateNewOffset, findFunctionEntrypoints } from '../src/dev-server';
-import { resolve } from 'path';
+import { calculateNewOffset, findFunctionDirs } from '../src/dev-server';
+import { withNockback } from './helpers';
 
 process.env.BOT_API_TOKEN ??= '1111:fake_token';
 
@@ -21,10 +21,10 @@ describe('dev server', () => {
   });
 
   it('finds all function scripts in a project (if any)', () => {
-    expect(findFunctionEntrypoints()).toEqual([]);
+    expect(findFunctionDirs(__dirname)).toEqual([]);
     const projRoot = __dirname + '/testProject';
-    expect(findFunctionEntrypoints(projRoot)).toEqual([
-      resolve(projRoot, 'webhook1-script.js'),
+    expect(findFunctionDirs(projRoot)).toEqual([
+      resolve(projRoot, 'webhook1'),
       resolve(projRoot, 'webhook2'),
     ]);
   });
@@ -48,9 +48,12 @@ describe('dev server', () => {
   });
 
   it('defaults timeout to 55sec', () => {
-    expect(new DevServer(createAzureTelegramWebhook(() => {}))).toHaveProperty(
-      'timeout',
-      55,
-    );
+    expect(
+      new DevServer({
+        type: 'azure',
+        handler: createAzureTelegramWebhook(() => {}),
+        path: 'fake path',
+      }),
+    ).toHaveProperty('timeout', 55);
   });
 });

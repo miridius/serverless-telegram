@@ -1,4 +1,9 @@
-import { Context, Logger } from '../wrap-azure';
+import { Context } from '../wrap-http';
+import {
+  callTgApi,
+  toAnswerInlineMethod,
+  toResponseMethod,
+} from './telegram-api';
 import type {
   InlineQuery,
   InlineResponse,
@@ -6,15 +11,16 @@ import type {
   MessageResponse,
   UpdateResponse,
 } from './types';
-import {
-  callTgApi,
-  toAnswerInlineMethod,
-  toResponseMethod,
-} from './telegram-api';
+
+export type Logger = Pick<typeof console, 'debug' | 'info' | 'warn' | 'error'>;
+export const getLogger = (ctx: Context): Logger =>
+  ctx && typeof ctx === 'object' && 'log' in ctx
+    ? { debug: ctx.log.verbose, ...ctx.log }
+    : console;
 
 export class Env<R> {
   readonly context: Context;
-  readonly debug: Logger['verbose'];
+  readonly debug: Logger['debug'];
   readonly info: Logger['info'];
   readonly warn: Logger['warn'];
   readonly error: Logger['error'];
@@ -24,10 +30,11 @@ export class Env<R> {
 
   constructor(context: Context) {
     this.context = context;
-    this.debug = context.log.verbose;
-    this.info = context.log.info;
-    this.warn = context.log.warn;
-    this.error = context.log.error;
+    const { debug, info, warn, error } = getLogger(context);
+    this.debug = debug;
+    this.info = info;
+    this.warn = warn;
+    this.error = error;
   }
 
   /**

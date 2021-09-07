@@ -8,15 +8,17 @@
 
 A library to remove some of the repetitive work in creating servlerless telegram bots.
 
-The most support is provided for Azure Function Apps but other platforms can also be used with a little extra work.
-
 Your job is to write handler functions that receive a message (or inline query) and optionally return a response. The rest will be taken care of.
+
+The most support is provided for AWS Lambda and Azure Function Apps but other platforms can also be used with a little extra work to convert the HTTP requests/responses accordingly
 
 # Table of Contents
 
 - [serverless-telegram](#serverless-telegram)
 - [Table of Contents](#table-of-contents)
 - [Getting Started](#getting-started)
+  - [On AWS](#on-aws)
+  - [On Azure](#on-azure)
   - [Next steps](#next-steps)
 - [Documentation](#documentation)
   - [Creating a webhook](#creating-a-webhook)
@@ -51,6 +53,10 @@ Your job is to write handler functions that receive a message (or inline query) 
   - [Publishing to NPM](#publishing-to-npm)
 
 # Getting Started
+
+Guidance is provided for AWS and Azure, however other cloud providers can be used as well as long as you write your own HTTP wrapper
+
+## On Azure
 
 1. Use the [official quickstart](https://docs.microsoft.com/en-us/azure/azure-functions/create-first-function-vs-code-node) to create a new Azure function using JavaScript or TypeScript. I recommend calling the function something like "telegram-webhook" or just "webhook" but it really doesn't matter.
 1. Install `serverless-telegram` as a dependency:
@@ -111,15 +117,152 @@ Your job is to write handler functions that receive a message (or inline query) 
    ```
 1. Start a private chat with the bot and say "/start". It should reply with "You said: /start"
 
+## On AWS
+
+1.  If you haven't already, install the [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html) and [configure your credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html#cli-configure-quickstart-config)
+1.  Install the [SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html), or if you already have it installed make sure that it is **at least version 1.31** by running `sam --version`
+1.  Create a new blank app using the SAM CLI (you will be prompted for the new folder name):
+
+    ```sh
+    sam init --runtime nodejs14.x --package-type Zip --app-template quick-start-from-scratch
+    ```
+
+1.  Open the newly created folder in VS code and add `serverless-telegram` as a dependency using the terminal
+
+    ```bash
+    npm i serverless-telegram
+    ```
+
+1.  In the `src/handlers` folder, rename `hello-from-lambda.js` to `webhook.js` and replace its content with the following:
+
+    ```js
+    /// @ts-check
+    const { createAwsTelegramWebhook } = require('serverless-telegram');
+
+    exports.lambdaHandler = createAwsTelegramWebhook(
+      ({ text }) => text && `You said: ${text}`,
+    );
+    ```
+
+    **Optional:** also update the tests by renaming `__tests__/unit/handlers/hello-from-lambda.test.js` to `webhook.test.js` and replacing its contents with the following:
+
+    ```js
+    const webhook = require('../../../src/handlers/webhook.js');
+
+    // ignore debug output during tests
+    console.debug = jest.fn();
+
+    const testUpdate = (botUpdate, expectedResponse) =>
+      expect(
+        webhook.lambdaHandler({ body: JSON.stringify(botUpdate) }),
+      ).resolves.toEqual(expectedResponse);
+
+    describe('webhook', function () {
+      it('responds to a simple text message', () => {
+        return testUpdate(
+          {
+            update_id: 1,
+            message: { chat: { id: 1 }, text: 'hi' },
+          },
+          {
+            method: 'sendMessage',
+            chat_id: 1,
+            text: 'You said: hi',
+          },
+        );
+      });
+
+      it('ignores a message without text', () => {
+        return testUpdate({ update_id: 1, message: { chat: { id: 1 } } }, '');
+      });
+    });
+    ```
+
+    You can run your tests by running `npm t`
+
+1.  In the project root, open `template.yml` and make the following changes:
+
+    1. In the Resources section, delete the `helloFromLambdaFunction` and add a `WebhookFunction` as shown below:
+
+       ```yaml
+       Resources:
+         # Each Lambda function is defined by properties:
+         # https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+
+         # This is a Lambda function config associated with the source code: webhook.js
+         WebhookFunction:
+           Type: AWS::Serverless::Function
+           Properties:
+             Handler: src/handlers/webhook.lambdaHandler
+             Runtime: nodejs14.x
+             Description: Webhook to receive updates from the Telegram bot API
+             MemorySize: 128
+             Timeout: 50
+             Events:
+               Webhook:
+                 Type: HttpApi # More info about HttpApi Event Source: https://github.com/aws/serverless-application-model/blob/master/versions/2016-10-31.md#httpapi
+                 Properties:
+                   Path: /webhook
+                   Method: POST
+       ```
+
+    1. Add an Outputs section at the end of the file:
+
+       ```yaml
+       Outputs:
+         # ServerlessHttpApi is an implicit API created out of Events key under Serverless::Function
+         # Find out more about other implicit resources you can reference within SAM
+         # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+         WebhookApi:
+           Description: 'HTTP API endpoint URL for Telegram webhook'
+           Value: !Sub 'https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/webhook'
+       ```
+
+1.  Deploy your function to AWS by running `sam deploy --guided`.
+    - Choose a stack name matching your project name, making sure it is unique to your AWS account & region.
+    - When asked if it's ok that authorization is not defined, choose Y
+    - All other options can be left as default
+1.  Edit the new `samconfig.toml` in your project root and add your stack name as a global parameter, so that you won't need to specify it for other `sam` commands such as `sam logs`:
+
+    ```toml
+    [default.global.parameters]
+    stack_name = "<your stack name>"
+    ```
+
+1.  If everything worked ok you should see the new Webhook URL in the output section at the end. You will use this URL in the next 2 steps.
+1.  **Optional:** Test your endpoint by sending a JSON POST request to it containing `{"update_id":1,"message":{"chat":{"id":1},"text":"hi"}}` . For example using curl:
+    ```bash
+    curl -H "Content-Type: application/json" -d '{"update_id":1,"message":{"chat":{"id":1},"text":"hi"}}' <your-webhook-url>
+    # Expected output: {"method":"sendMessage","chat_id":1,"text":"You said: hi"}%
+    ```
+    In case you get an internal server error response, check your function's logs by running:
+    ```bash
+    # add -t to tail
+    sam logs -n WebhookFunction
+    ```
+1.  Create a new telegram bot and copy the API token. Then set its webhook to point to this URL with the provided CLI command:
+    ```sh
+    BOT_API_TOKEN=<your-bot-token> npx set-webhook <your-webhook-url>
+    ```
+1.  Start a private chat with the bot and say "/start". It should reply with "You said: /start"
+1.  From now on whenever you want to deploy changes you can do so by running `sam deploy`.
+
 ## Next steps
 
-Here is a slightly more complex example demonstrating some of the concepts that are documented later in this readme. This bot greets users on any text message, echos sticker messages, and ignores all other messages. It also has logging and error reporting enabled.
+Before you go any further, we suggest you [set up a local dev server](#running-a-local-bot-server-during-development) so that you can test your changes without deploying. It's not mandatory but it makes the development cycle a lot shorter.
+
+Once you're ready to write your handler, the example below gives a quick overview of some of the concepts that are documented later in this readme. This bot greets users on any text message, echos sticker messages, and ignores all other messages. It also has logging and error reporting enabled.
 
 ```js
+/// @ts-check
+// or `createAwsTelegramWebhook`
 const { createAzureTelegramWebhook } = require('serverless-telegram');
 
 const MY_CHAT_ID = 0; // TODO: Set your chat ID for error reports
 
+// on AWS:
+// exports.lambdaHandler = createAwsTelegramWebhook(async (msg, env) => {
+// on Azure:
 module.exports = createAzureTelegramWebhook(async (msg, env) => {
   env.info('Got message:', msg);
   const {
@@ -128,7 +271,7 @@ module.exports = createAzureTelegramWebhook(async (msg, env) => {
     from: { first_name },
     chat: { id },
   } = msg;
-  if (text) return `Hello ${first_name}! Our chat ID is: ${id}`;
+  if (text) return `Hello ${first_name}! Your chat ID is: ${id}`;
   if (sticker) return { sticker: sticker.file_id };
 }, MY_CHAT_ID);
 ```
@@ -137,16 +280,16 @@ module.exports = createAzureTelegramWebhook(async (msg, env) => {
 
 ## Creating a webhook
 
-This library has a functional-style API in order to facilitate easier testing. You can write your message and/or inline query handlers as pure functions and then pass them to `createAzureTelegramWebhook`, which will turn it/them into an azure http function ready for deployment to your function app.
+This library has a functional-style API in order to facilitate easier testing. You can write your message and/or inline query handlers as pure functions and then pass them to `createAzureTelegramWebhook` or `createAwsTelegramWebhook`, which will turn it/them into an azure http function/aws lambda handler ready for deployment to your chosen cloud.
 
-`createAzureTelegramWebhook` takes 2 arguments:
+`createAzureTelegramWebhook` and `createAwsTelegramWebhook` take 2 arguments:
 
 - `handler` - either a [HandlerMap](#HandlerMap) or just a [MessageHandler](#MessageHandler)
 - `errorChatId` _(optional)_ - see [Receiving error reports](#receiving-error-reports)
 
 The return value should then be exported by your function's main script.
 
-Once deployed to your Azure app, you'll need to get the function's URL (you can do this via the VS code extension) and set it as your bot's webhook. To do the latter step, a CLI tool is provided for convenience:
+Once deployed to the cloud, you'll need to get the Azure function URL (you can do this via the VS code extension) or AWS API Gateway URL (it is usually printed to the console after deployment) and set it as your bot's webhook. To do the latter step, a CLI tool is provided for convenience:
 
 ```sh
 BOT_API_TOKEN=<your-bot-token> npx set-webhook <your-function-url>
@@ -176,7 +319,7 @@ module.exports = createAzureTelegramWebhook(handler, errorChatId);
 
 A simple object allowing an inline handler and/or message handler to be specified.
 
-If no inline handler is needed, you can also just pass the message handler directly to `createAzureTelegramWebhook`
+If no inline handler is needed, you can also just pass the message handler directly to `createAzureTelegramWebhook` or `createAwsTelegramWebhook`
 
 <pre>
 interface HandlerMap {
@@ -205,15 +348,19 @@ type InlineHandler = (
 
 ### `MessageEnv` and `InlineEnv`
 
-The second argument passed to message and inline handlers is a `MessageEnv` or `InlineEnv` respectively. This is an object with the following properties:
+The second argument passed to message and inline handlers is a `MessageEnv` or `InlineEnv` respectively.
 
-- `context`: the Azure [context object](https://docs.microsoft.com/en-us/azure/azure-functions/functions-reference-node?tabs=v2#context-object)
+This is mainly needed on Azure where logging has to be done via the context object, whereas on AWS you can simply log to the console, but it can still be useful on AWS for the `send` method. The logging functions will still work in AWS (they simply redirect to the console) to make it easier for you to re-use code across cloud providers.
+
+This env object has the following properties:
+
+- `context`: the [Azure context object](https://docs.microsoft.com/en-us/azure/azure-functions/functions-reference-node?tabs=v2#context-object) or the [AWS context object](https://docs.aws.amazon.com/lambda/latest/dg/nodejs-context.html) depending on the deployed platform
 - `message` (only on `MessageEnv`): the incoming `Message`
 - `inlineQuery` (only on `InlineEnv`): the incoming `InlineQuery`
-- `debug(...data)`: function which logs to the debug log level (pointer to the _incorrectly named_ `context.log.verbose` )
-- `info(...data)`: function to logs at info level (`-> context.log.info`)
-- `warn(...data)`: function to logs at warn level (`-> context.log.warn`)
-- `error(...data)`: function to logs at error level (`-> context.log.error`)
+- `debug(...data)`: function which logs to the debug log level (pointer to the _incorrectly named_ `context.log.verbose` on Azure or `console.debug` on AWS)
+- `info(...data)`: function to logs at info level (➡ `context.log.info` on Azure / `console.info` on AWS)
+- `warn(...data)`: function to logs at warn level (➡ `context.log.warn` on Azure / `console.warn` on AWS)
+- `error(...data)`: function to logs at error level (➡ `context.log.error` on Azure / `console.error` on AWS)
 - `async send(res)`: Call the Telegram Bot API asynchronously _during_ handler execution, see [Using the Telegram API mid-execution](#using-the-telegram-api-mid-execution)
 
 ### `MessageResponse`
@@ -311,9 +458,11 @@ if (fileId) return { video: fileId };
 
 When running on Azure, your async handler functions may be executed multiple times in parallel in the same node process. In order to make sure that logging is separated per function execution, Azure requires that you use special logging methods and **not** console.log. These logging methods are included as properties of the [env](#messageenv-and-inlineenv) object passed to your handler functions on each execution, see that section for details.
 
+When running on AWS, you can simply log to the console as normally.
+
 ## Receiving error reports
 
-Any errors thrown by your functions are automatically caught and logged to the Azure log streams. If you wish to receive error reports in real time via telegram, pass the telegram chat ID that you want them sent to as a second argument to `createAzureTelegramWebhook`.
+Any errors thrown by your functions are automatically caught and logged to the Azure/AWS log streams. If you wish to receive error reports in real time via telegram, pass the telegram chat ID that you want them sent to as a second argument to `createAzureTelegramWebhook` or `createAwsTelegramWebhook`.
 
 An easy way to find out your chat ID is to send your bot a message and check the debug logs.
 
@@ -339,7 +488,7 @@ An easy way to find out your chat ID is to send your bot a message and check the
 
 ### Long version
 
-Deploying to Azure every time you want to test your bot would be apain, which is why serverless-telegram comes with a built in **dev server**. It will use telegram's `getUpdates` method to listen for bot updates, run them through your function code, and send the response back to the bot API.
+Deploying to the cloud every time you want to test your bot would be a pain, which is why serverless-telegram comes with a built in **dev server**. It will use telegram's `getUpdates` method to listen for bot updates, run them through your function code, and send the response back to the bot API.
 
 The dev server can be run by importing `startDevServer` from `serverless-telegram`, or directly from the command line by calling `npx start-dev-server`, but if you try this straight away, it will complain that the `BOT_API_TOKEN` environment variable is not set. You will need to first create a new development bot (you can't use your production bot even if you wanted to, since that bot has a webhook set which means you can't manually pull updates), and then provide its api token to the dev server via an environment variable. For example:
 
@@ -363,11 +512,9 @@ By default, `start-dev-server` will search your current directory for functions 
 
 An optional second argument can be passed to change the [long poll timeout](https://core.telegram.org/bots/api#getupdates)
 
-## Using with other cloud providers (AWS, GCP, etc)
+## Using with other cloud providers (GCP)
 
-`createAzureTelegramWebhook` is internally made of two parts: `wrapTelegram` and `wrapAzure`. To use this library for other platforms besides Azure, you can use `wrapTelegram` directly and write your own http wrapper. `wrapTelegram` takes the same arguments as `createAzureTelegramWebhook`, and will return a function that takes the JSON-parsed webhook body (i.e. a telegram update object) and returns the desired response body as a JS object (not stringified).
-
-Built in support for AWS Lambda is planned for version 0.6
+`createAzureTelegramWebhook` and `createAwsTelegramWebhook` are internally made of two parts: `wrapTelegram` and `wrapAzure`/`wrapAws`. To use this library for other platforms besides Azure, you can use `wrapTelegram` directly and write your own http wrapper. `wrapTelegram` takes the same arguments as `createAzureTelegramWebhook`, and will return a function that takes the JSON-parsed webhook body (i.e. a telegram update object) and returns the desired response body as a JS object (not stringified).
 
 # Developing serverless-telegram (via [TSDX](https://github.com/formium/tsdx))
 
@@ -375,7 +522,7 @@ Built in support for AWS Lambda is planned for version 0.6
 
 Prerequisites:
 
-- NodeJS v14 (to support Azure functions)
+- NodeJS v14 (to support Azure/AWS functions)
 - Yarn (to support package resolutions overrides)
 
 Clone the repo and then run `yarn install`
@@ -396,7 +543,7 @@ To do a one-off build, use `yarn build`.
 
 To run tests, use `yarn test`.
 
-To run tests in watch mode, use `yarn dev`.
+To run tests in watch mode, use `yarn test:watch`.
 
 ## Configuration
 
@@ -452,3 +599,11 @@ The appropriate paths are configured in `package.json` and `dist/index.js` accor
 ## Publishing to NPM
 
 Run `yarn release`
+
+```
+
+```
+
+```
+
+```

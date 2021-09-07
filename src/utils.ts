@@ -1,7 +1,11 @@
-import type { FileBuffer, SetWebHookOptions } from './wrap-telegram/types';
 import { resolve } from 'path';
 import { URL } from 'url';
 import { callTgApi } from './wrap-telegram/telegram-api';
+import type { FileBuffer, SetWebHookOptions } from './wrap-telegram/types';
+
+export const debugAndReturn = (label: string) => <T>(x: T) => (
+  console.debug(label + ':', x), x
+);
 
 export const isObject = (x: unknown): x is Exclude<object, null> =>
   typeof x === 'object' && x !== null;
@@ -42,5 +46,28 @@ export const setWebhook = async (opts: SetWebHookOptions) => {
     }
   });
 
+  console.info('Successfully updated webhook');
   return res;
+};
+
+export const deleteWebhook = async () => {
+  console.debug('Deleting webhook:');
+  const res = await callTgApi({ method: 'deleteWebhook' });
+  console.debug(res);
+  if (res !== true) {
+    throw new Error(`Delete webhook failed - API responded with ${res}`);
+  }
+
+  console.debug('Getting webhook info:');
+  const webhookInfo = await callTgApi({ method: 'getWebhookInfo' });
+  console.debug(webhookInfo);
+
+  if (webhookInfo.url) {
+    throw new Error(
+      `Delete webhook failed - url is still set to ${webhookInfo.url}`,
+    );
+  }
+
+  console.info('Successfully deleted webhook');
+  return webhookInfo;
 };

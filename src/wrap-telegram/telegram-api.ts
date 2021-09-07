@@ -1,22 +1,22 @@
+import FormData from 'form-data';
+import { createReadStream } from 'fs';
+import fetch, { RequestInit } from 'node-fetch';
+import { isFileBuffer, isFileUrl, isObject, toFileUrl } from '../utils';
 import {
   AnswerInlineQuery,
-  INLINE_TYPE_MAPPING,
   InlineQueryResult,
   InlineResponse,
   InlineResult,
+  INLINE_TYPE_MAPPING,
   MessageResponse,
   METHOD_MAPPING,
   NoResponse,
+  responseFileParams,
   ResponseMethod,
   ResponseObject,
   TgApiRequest,
   UpdateResponse,
-  responseFileParams,
 } from './types';
-import { isFileBuffer, isFileUrl, isObject, toFileUrl } from '../utils';
-import { createReadStream } from 'fs';
-import fetch, { RequestInit } from 'node-fetch';
-import FormData from 'form-data';
 
 const getMethod = (res: ResponseObject): ResponseMethod['method'] | undefined =>
   Object.keys(res)
@@ -161,7 +161,7 @@ export const callTgApi = async (req: TgApiRequest, useForm?: boolean) => {
   const { method, ...params } = req;
   if (!method) throw new Error(`No method in request: ${JSON.stringify(req)}`);
   const res = await fetch(getUrl(method), getOpts(params, useForm));
-  const json = await res.json();
+  const json = (await res.json()) as any;
   if (!json.ok) throw new Error(`Telegram API error: ${json.description}`);
   return json.result;
 };
