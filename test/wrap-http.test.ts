@@ -1,5 +1,6 @@
 import { HttpRequest } from '@azure/functions';
-import { HttpResponse, wrapAzure } from '../src/wrap-http';
+import { wrapAws, wrapAzure } from '../src';
+import { HttpResponse } from '../src/wrap-http';
 import { ctx } from './helpers';
 
 const jsonObj = {
@@ -82,5 +83,19 @@ describe('wrapAzure', () => {
   it('sets ctx.res as well as the return value', async () => {
     const returnVal = await echo(ctx, stringRequest);
     expect(ctx.res).toEqual(returnVal);
+  });
+});
+
+describe('wrapAws', () => {
+  const echo = wrapAws(async (x: any) => x);
+
+  it('parses Json', () => {
+    return expect(
+      echo({ body: JSON.stringify(jsonObj) } as any, null, null),
+    ).resolves.toEqual(jsonObj);
+  });
+
+  it('ignores empty body and returns empty string instead of undefined', () => {
+    return expect(echo({} as any, null, null)).resolves.toEqual('');
   });
 });

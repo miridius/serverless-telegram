@@ -271,7 +271,7 @@ describe('MessageEnv', () => {
 });
 
 describe('InlineEnv', () => {
-  it('is passed to inline query handler with correct properties', () => {
+  it('is passed to inline query handler with correct properties', async () => {
     expect.assertions(2);
     const handler = (iq: InlineQuery, env: InlineEnv) => {
       expect(iq).toEqual(inlineQuery);
@@ -284,7 +284,7 @@ describe('InlineEnv', () => {
         inlineQuery,
       });
     };
-    return wrapTelegram({ inline: handler })(inlineUpdate, ctx);
+    await wrapTelegram({ inline: handler })(inlineUpdate, ctx);
   });
 
   it('supports calling the telegram API', () => {

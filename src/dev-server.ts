@@ -1,5 +1,5 @@
 import { APIGatewayProxyHandlerV2 } from 'aws-lambda';
-import { existsSync, readdirSync } from 'fs';
+import { existsSync, readdirSync, readFileSync } from 'fs';
 import { Update } from 'node-telegram-bot-api';
 import { resolve } from 'path';
 import {
@@ -92,44 +92,64 @@ export class DevServer {
   }
 }
 
-const isFnDir = (path: string) => {
-  const files = readdirSync(path);
-  return (
-    files.includes('function.json') ||
-    (files.includes('package.json') &&
-      require(resolve(path, 'package.json')).main)
-  );
+const isAzureFnPath = (path: string) =>
+  readdirSync(path).includes('function.json');
+
+const isAwsHandlerPath = (path: string) => path !== '.' && path.includes('.');
+
+const findAzureFunctionDirs = (rootPath: string) =>
+  readdirSync(rootPath, { withFileTypes: true })
+    .filter((dirent) => dirent.isDirectory())
+    .map((dirent) => dirent.name)
+    .filter((name) => !name.startsWith('.') && !(name === 'node_modules'))
+    .map((name) => resolve(rootPath, name))
+    .filter(isAzureFnPath);
+
+const nonNull = <T>(x: T): x is Exclude<T, null> => x !== null;
+
+const findAwsHandlerPaths = (projectDir: string) =>
+  readFileSync(resolve(projectDir, 'template.yml'), 'utf-8')
+    .split('\n')
+    .map((line) => line.match(/^\s+Handler:\s+(.*)$/))
+    .filter(nonNull)
+    .map((match) => resolve(projectDir, match[1]));
+
+const loadAzureWebhook = (path: string): Webhook => ({
+  type: 'azure',
+  handler: require(resolve(
+    path,
+    require(resolve(path, 'function.json')).scriptFile || '.',
+  )),
+  path,
+});
+
+const loadAwsWebhook = (path: string): Webhook => {
+  const [file, methodName] = path.split('.');
+  return {
+    type: 'aws',
+    handler: require(resolve(file))[methodName],
+    path,
+  };
 };
 
-export const findFunctionDirs = (rootPath: string = '.') =>
-  isFnDir(rootPath)
-    ? [rootPath]
-    : readdirSync(rootPath, { withFileTypes: true })
-        .filter((dirent) => dirent.isDirectory())
-        .map((dirent) => dirent.name)
-        .filter((name) => !name.startsWith('.') && !(name === 'node_modules'))
-        .map((name) => resolve(rootPath, name))
-        .filter(isFnDir);
+const loadAzureWebhookFunctions = (projectOrFunctionDir: string) =>
+  isAzureFnPath(projectOrFunctionDir)
+    ? [loadAzureWebhook(projectOrFunctionDir)]
+    : findAzureFunctionDirs(projectOrFunctionDir).map(loadAzureWebhook);
 
-// const requireIfExists = (path: string) =>
-//   existsSync(path) ? require(path) : undefined;
+const loadAwsWebhookFunctions = (projectDirOrHandlerPath: string) =>
+  isAwsHandlerPath(projectDirOrHandlerPath)
+    ? [loadAwsWebhook(projectDirOrHandlerPath)]
+    : findAwsHandlerPaths(projectDirOrHandlerPath).map(loadAwsWebhook);
 
-const loadWebhookFn = (path: string): Webhook =>
-  existsSync(resolve(path, 'function.json'))
-    ? {
-        type: 'azure',
-        handler: require(resolve(
-          path,
-          require(resolve(path, 'function.json')).scriptFile || '.',
-        )),
-        path,
-      }
-    : { type: 'aws', handler: require(resolve(path)).lambdaHandler, path };
+const isAws = (projectDirOrHandlerPath: string) =>
+  existsSync(resolve(projectDirOrHandlerPath, 'template.yml')) ||
+  isAwsHandlerPath(projectDirOrHandlerPath);
 
-export const loadWebhookFunctions = (projectOrFunctionDir: string = '.') =>
-  isFnDir(projectOrFunctionDir)
-    ? [loadWebhookFn(projectOrFunctionDir)]
-    : findFunctionDirs(projectOrFunctionDir).map(loadWebhookFn);
+export const loadWebhooks = (projectOrFunctionDir: string = '.'): Webhook[] =>
+  isAws(projectOrFunctionDir)
+    ? loadAwsWebhookFunctions(projectOrFunctionDir)
+    : loadAzureWebhookFunctions(projectOrFunctionDir);
 
 /**
  * Starts a local dev server (see `README.md`) for either a specific function or
@@ -140,8 +160,10 @@ export const loadWebhookFunctions = (projectOrFunctionDir: string = '.') =>
  *
  * This function can be run from the command line using `npx start-dev-server`
  *
- * @param projectOrFunctionDir pass either a specific function directory, or
- * your project root (defaults to `'.'`) to search it for function directories.
+ * @param projectOrFunctionDirOrHandlerPath Azure: pass either a specific function directory,
+ * or your project root (defaults to `'.'`) to search it for function
+ * directories. AWS: pass either a specific handler path or your project root
+ * (defaults to `'.'`) to read the template.yml and find all lambda handlers.
  *
  * @param timeout Max timeout in seconds for long polling, defaults to `55`.
  * See the {@link https://core.telegram.org/bots/api#getupdates|docs} for more.
@@ -151,11 +173,11 @@ export const loadWebhookFunctions = (projectOrFunctionDir: string = '.') =>
  * other words, at most `timeout` seconds)
  */
 export const startDevServer = (
-  projectOrFunctionDir?: string,
+  projectOrFunctionDirOrHandlerPath?: string,
   timeout?: number,
 ): DevServer[] => {
-  const webhooks = loadWebhookFunctions(projectOrFunctionDir);
-  if (!webhooks?.length) throw new Error('no function entry points found');
+  const webhooks = loadWebhooks(projectOrFunctionDirOrHandlerPath);
+  if (!webhooks.length) throw new Error('no function entry points found');
   return webhooks.map((webhook) => {
     log.info('Starting dev server for', webhook.path);
     return new DevServer(webhook, timeout).start();
