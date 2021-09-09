@@ -1,13 +1,19 @@
+import { existsSync, readdirSync, readFileSync } from 'fs';
 import { Update } from 'node-telegram-bot-api';
-import { AzureHttpFunction, Context, HttpRequest, Logger } from './wrap-azure';
-import { callTgApi } from './wrap-telegram/telegram-api';
 import { resolve } from 'path';
-import { readdirSync } from 'fs';
+import { callTgApi } from './telegram/telegram-api';
+import type {
+  AwsHttpFunction,
+  AzureContext,
+  AzureHttpFunction,
+  AzureHttpRequest,
+  AzureLogger,
+} from './types';
 
 const withDate = (logger: (...args: any[]) => any) => (...args: any[]) =>
   logger(new Date(), ...args);
 
-const log = withDate(console.log) as Logger;
+const log = withDate(console.log) as AzureLogger;
 Object.assign(log, {
   verbose: withDate(console.debug),
   info: withDate(console.info),
@@ -21,14 +27,28 @@ export const calculateNewOffset = (offset?: number, update?: Update) => {
   return isNaN(newOffset) ? offset : newOffset;
 };
 
+interface AzureWebhook {
+  type: 'azure';
+  handler: AzureHttpFunction;
+  path: string;
+}
+
+interface AwsWebhook {
+  type: 'aws';
+  handler: AwsHttpFunction;
+  path: string;
+}
+
+type Webhook = AzureWebhook | AwsWebhook;
+
 export class DevServer {
-  webhook: AzureHttpFunction;
+  webhook: Webhook;
   timeout: number;
 
   running = false;
   offset?: number;
 
-  constructor(webhook: AzureHttpFunction, longPollTimeoutSecs: number = 55) {
+  constructor(webhook: Webhook, longPollTimeoutSecs: number = 55) {
     this.webhook = webhook;
     this.timeout = longPollTimeoutSecs;
   }
@@ -60,28 +80,79 @@ export class DevServer {
 
   private async handleUpdate(body: Update) {
     this.offset = calculateNewOffset(this.offset, body);
-    const res = await this.webhook({ log } as Context, { body } as HttpRequest);
-    return res && callTgApi(res.body);
+    const res = await (this.webhook.type === 'azure'
+      ? this.webhook.handler(
+          { log } as AzureContext,
+          { body } as AzureHttpRequest,
+        )
+      : this.webhook.handler(
+          { body: JSON.stringify(body) } as any,
+          null as any,
+        ));
+    const resBody =
+      res && typeof res === 'object' && 'body' in res ? res.body : res;
+    return resBody && callTgApi(resBody);
   }
 }
 
-const isFnDir = (path: string) => readdirSync(path).includes('function.json');
+const isAzureFnPath = (path: string) =>
+  readdirSync(path).includes('function.json');
 
-const findFunctionDirs = (rootPath: string) =>
+const isAwsHandlerPath = (path: string) => path !== '.' && path.includes('.');
+
+const findAzureFunctionDirs = (rootPath: string) =>
   readdirSync(rootPath, { withFileTypes: true })
     .filter((dirent) => dirent.isDirectory())
     .map((dirent) => dirent.name)
     .filter((name) => !name.startsWith('.') && !(name === 'node_modules'))
     .map((name) => resolve(rootPath, name))
-    .filter(isFnDir);
+    .filter(isAzureFnPath);
 
-const getScriptPath = (fnPath: string) =>
-  resolve(fnPath, require(resolve(fnPath, 'function.json')).scriptFile || '.');
+const nonNull = <T>(x: T): x is Exclude<T, null> => x !== null;
 
-export const findFunctionEntrypoints = (projectOrFunctionDir: string = '.') =>
-  isFnDir(projectOrFunctionDir)
-    ? [getScriptPath(projectOrFunctionDir)]
-    : findFunctionDirs(projectOrFunctionDir).map(getScriptPath);
+const findAwsHandlerPaths = (projectDir: string) =>
+  readFileSync(resolve(projectDir, 'template.yml'), 'utf-8')
+    .split('\n')
+    .map((line) => line.match(/^\s+Handler:\s+(.*)$/))
+    .filter(nonNull)
+    .map((match) => resolve(projectDir, match[1]));
+
+const loadAzureWebhook = (path: string): Webhook => ({
+  type: 'azure',
+  handler: require(resolve(
+    path,
+    require(resolve(path, 'function.json')).scriptFile || '.',
+  )),
+  path,
+});
+
+const loadAwsWebhook = (path: string): Webhook => {
+  const [file, methodName] = path.split('.');
+  return {
+    type: 'aws',
+    handler: require(resolve(file))[methodName],
+    path,
+  };
+};
+
+const loadAzureWebhookFunctions = (projectOrFunctionDir: string) =>
+  isAzureFnPath(projectOrFunctionDir)
+    ? [loadAzureWebhook(projectOrFunctionDir)]
+    : findAzureFunctionDirs(projectOrFunctionDir).map(loadAzureWebhook);
+
+const loadAwsWebhookFunctions = (projectDirOrHandlerPath: string) =>
+  isAwsHandlerPath(projectDirOrHandlerPath)
+    ? [loadAwsWebhook(projectDirOrHandlerPath)]
+    : findAwsHandlerPaths(projectDirOrHandlerPath).map(loadAwsWebhook);
+
+const isAws = (projectDirOrHandlerPath: string) =>
+  existsSync(resolve(projectDirOrHandlerPath, 'template.yml')) ||
+  isAwsHandlerPath(projectDirOrHandlerPath);
+
+export const loadWebhooks = (projectOrFunctionDir: string = '.'): Webhook[] =>
+  isAws(projectOrFunctionDir)
+    ? loadAwsWebhookFunctions(projectOrFunctionDir)
+    : loadAzureWebhookFunctions(projectOrFunctionDir);
 
 /**
  * Starts a local dev server (see `README.md`) for either a specific function or
@@ -92,8 +163,10 @@ export const findFunctionEntrypoints = (projectOrFunctionDir: string = '.') =>
  *
  * This function can be run from the command line using `npx start-dev-server`
  *
- * @param projectOrFunctionDir pass either a specific function directory, or
- * your project root (defaults to `'.'`) to search it for function directories.
+ * @param projectOrFunctionDirOrHandlerPath Azure: pass either a specific function directory,
+ * or your project root (defaults to `'.'`) to search it for function
+ * directories. AWS: pass either a specific handler path or your project root
+ * (defaults to `'.'`) to read the template.yml and find all lambda handlers.
  *
  * @param timeout Max timeout in seconds for long polling, defaults to `55`.
  * See the {@link https://core.telegram.org/bots/api#getupdates|docs} for more.
@@ -103,10 +176,13 @@ export const findFunctionEntrypoints = (projectOrFunctionDir: string = '.') =>
  * other words, at most `timeout` seconds)
  */
 export const startDevServer = (
-  projectOrFunctionDir?: string,
+  projectOrFunctionDirOrHandlerPath?: string,
   timeout?: number,
-) =>
-  findFunctionEntrypoints(projectOrFunctionDir).map((path) => {
-    log.info('Starting dev server for', path);
-    return new DevServer(require(path), timeout).start();
+): DevServer[] => {
+  const webhooks = loadWebhooks(projectOrFunctionDirOrHandlerPath);
+  if (!webhooks.length) throw new Error('no function entry points found');
+  return webhooks.map((webhook) => {
+    log.info('Starting dev server for', webhook.path);
+    return new DevServer(webhook, timeout).start();
   });
+};

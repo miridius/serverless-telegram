@@ -1,32 +1,63 @@
-import { withNockback } from './helpers';
+import { resolve } from 'path';
 import createAzureTelegramWebhook, {
-  startDevServer,
   DevServer,
+  startDevServer,
   Update,
 } from '../src';
-import { calculateNewOffset, findFunctionEntrypoints } from '../src/dev-server';
-import { resolve } from 'path';
+import { calculateNewOffset, loadWebhooks } from '../src/dev-server';
+import { withNockback } from './helpers';
 
 process.env.BOT_API_TOKEN ??= '1111:fake_token';
 
 describe('dev server', () => {
-  it('gets updates and sends responses', async () => {
+  it('gets updates and sends responses (azure)', async () => {
     expect.assertions(1);
     await withNockback('devServer.json', async () => {
-      const server = startDevServer(__dirname + '/testProject/webhook1', 1)[0];
+      const server = startDevServer(
+        __dirname + '/__test-project-azure__/webhook1',
+        1,
+      )[0];
       server.stop();
       await new Promise((r) => setTimeout(r, 100));
       expect(server.offset).toBe(320849219);
     });
   });
 
-  it('finds all function scripts in a project (if any)', () => {
-    expect(findFunctionEntrypoints()).toEqual([]);
-    const projRoot = __dirname + '/testProject';
-    expect(findFunctionEntrypoints(projRoot)).toEqual([
-      resolve(projRoot, 'webhook1-script.js'),
+  it('gets updates and sends responses (aws)', async () => {
+    expect.assertions(1);
+    await withNockback('devServer.json', async () => {
+      const server = startDevServer(
+        __dirname + '/__test-project-aws__/src/handlers/webhook.lambdaHandler',
+        1,
+      )[0];
+      server.stop();
+      await new Promise((r) => setTimeout(r, 100));
+      expect(server.offset).toBe(320849219);
+    });
+  });
+
+  it('loads all function scripts in an Azure project (if any)', () => {
+    expect(loadWebhooks()).toEqual([]);
+    const projRoot = __dirname + '/__test-project-azure__';
+    expect(loadWebhooks(projRoot).map((w) => w.path)).toEqual([
+      resolve(projRoot, 'webhook1'),
       resolve(projRoot, 'webhook2'),
     ]);
+  });
+
+  it('loads all lambda handlers in an AWS project (if any)', () => {
+    expect(loadWebhooks()).toEqual([]);
+    expect(loadWebhooks(__dirname)).toEqual([]);
+    const projRoot = __dirname + '/__test-project-aws__';
+    expect(loadWebhooks(projRoot).map((w) => w.path)).toEqual([
+      resolve(projRoot, 'src/handlers/webhook.lambdaHandler'),
+    ]);
+  });
+
+  it('throws an error if no webhooks are found', () => {
+    expect(() => startDevServer()).toThrowError(
+      'no function entry points found',
+    );
   });
 
   it('calculates offset', () => {
@@ -48,9 +79,12 @@ describe('dev server', () => {
   });
 
   it('defaults timeout to 55sec', () => {
-    expect(new DevServer(createAzureTelegramWebhook(() => {}))).toHaveProperty(
-      'timeout',
-      55,
-    );
+    expect(
+      new DevServer({
+        type: 'azure',
+        handler: createAzureTelegramWebhook(() => {}),
+        path: 'fake path',
+      }),
+    ).toHaveProperty('timeout', 55);
   });
 });

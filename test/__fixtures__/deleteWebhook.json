@@ -1,0 +1,72 @@
+[
+  {
+    "scope": "https://api.telegram.org:443",
+    "method": "POST",
+    "path": "/bot1111:fake_token/deleteWebhook",
+    "body": {},
+    "status": 200,
+    "response": {
+      "ok": true,
+      "result": true,
+      "description": "Webhook was deleted"
+    },
+    "rawHeaders": [
+      "Server",
+      "nginx/1.18.0",
+      "Date",
+      "Thu, 09 Sep 2021 14:35:49 GMT",
+      "Content-Type",
+      "application/json",
+      "Content-Length",
+      "61",
+      "Connection",
+      "close",
+      "Strict-Transport-Security",
+      "max-age=31536000; includeSubDomains; preload",
+      "Access-Control-Allow-Origin",
+      "*",
+      "Access-Control-Allow-Methods",
+      "GET, POST, OPTIONS",
+      "Access-Control-Expose-Headers",
+      "Content-Length,Content-Type,Date,Server,Connection"
+    ],
+    "responseIsBinary": false
+  },
+  {
+    "scope": "https://api.telegram.org:443",
+    "method": "POST",
+    "path": "/bot1111:fake_token/getWebhookInfo",
+    "body": {},
+    "status": 200,
+    "response": {
+      "ok": true,
+      "result": {
+        "url": "",
+        "has_custom_certificate": false,
+        "pending_update_count": 0,
+        "allowed_updates": ["message", "edited_message"]
+      }
+    },
+    "rawHeaders": [
+      "Server",
+      "nginx/1.18.0",
+      "Date",
+      "Thu, 09 Sep 2021 14:35:49 GMT",
+      "Content-Type",
+      "application/json",
+      "Content-Length",
+      "134",
+      "Connection",
+      "close",
+      "Strict-Transport-Security",
+      "max-age=31536000; includeSubDomains; preload",
+      "Access-Control-Allow-Origin",
+      "*",
+      "Access-Control-Allow-Methods",
+      "GET, POST, OPTIONS",
+      "Access-Control-Expose-Headers",
+      "Content-Length,Content-Type,Date,Server,Connection"
+    ],
+    "responseIsBinary": false
+  }
+]

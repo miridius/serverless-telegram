@@ -1,19 +1,18 @@
-import { Context, Logger } from '@azure/functions';
 import * as nock from 'nock';
+import type { AwsContext, AzureContext, AzureLogger } from '../src';
 
-Object.assign(console, { debug: jest.fn(), info: jest.fn() });
-export const log: Logger = Object.assign((jest.fn() as unknown) as Logger, {
-  verbose: jest.fn(),
-  info: jest.fn(),
-  warn: jest.fn(),
-  error: jest.fn(),
-});
-export const ctx: Context = { log } as Context;
+export const log: AzureLogger = Object.assign(
+  (jest.fn() as unknown) as AzureLogger,
+  {
+    verbose: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+  },
+);
 
-nock.back.fixtures = __dirname + '/__fixtures__/';
-nock.back.setMode(process.env.CI ? 'lockdown' : 'record');
-
-afterAll(nock.restore);
+export const azureCtx = { log } as AzureContext;
+export const awsCtx = (null as unknown) as AwsContext;
 
 export const withNockback = async (fixture: string, testFn: () => any) => {
   const { nockDone, context } = await nock.back(fixture);

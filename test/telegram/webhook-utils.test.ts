@@ -1,5 +1,5 @@
-import { withNockback } from './helpers';
-import { setWebhook } from '../src/utils';
+import { deleteWebhook, setWebhook } from '../../src';
+import { withNockback } from '../helpers';
 
 process.env.BOT_API_TOKEN ??= '1111:fake_token';
 
@@ -38,6 +38,34 @@ describe('setWebhook', () => {
         }),
       ).rejects.toThrowErrorMatchingInlineSnapshot(
         `"Webhook update failed - urls don't match!"`,
+      );
+    });
+  });
+});
+
+describe('deleteWebhook', () => {
+  it('works', () => {
+    return withNockback('deleteWebhook.json', () => {
+      return expect(deleteWebhook()).resolves.toMatchInlineSnapshot(`
+                Object {
+                  "allowed_updates": Array [
+                    "message",
+                    "edited_message",
+                  ],
+                  "has_custom_certificate": false,
+                  "pending_update_count": 0,
+                  "url": "",
+                }
+              `);
+    });
+  });
+
+  it('throws an error if the webhook was not deleted', () => {
+    return withNockback('deleteWebhook2.json', () => {
+      return expect(() =>
+        deleteWebhook(),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(
+        `"Delete webhook failed - url is still set to https://example.com"`,
       );
     });
   });

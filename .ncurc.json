@@ -1,1 +1,1 @@
-{ "reject": "husky" }
+{ "reject": "husky,node-fetch,@types/node-fetch" }

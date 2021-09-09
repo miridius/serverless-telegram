@@ -1,45 +1,29 @@
-import type { MessageHandler, HandlerMap } from './wrap-telegram/types';
-import wrapTelegram from './wrap-telegram';
-import wrapAzure, { AzureHttpFunction } from './wrap-azure';
+import wrapTelegram from './telegram/wrap-telegram';
+import type {
+  AwsHttpFunction,
+  AzureHttpFunction,
+  HandlerMap,
+  MessageHandler,
+} from './types';
+import { wrapAws, wrapAzure } from './wrap-http';
 
 // re-exports
-export { startDevServer, DevServer } from './dev-server';
-export { wrapAzure, wrapTelegram };
-export { Env, MessageEnv, InlineEnv } from './wrap-telegram/env';
+export { DevServer, startDevServer } from './dev-server';
+export { Env, InlineEnv, MessageEnv } from './telegram/env';
+export { deleteWebhook, setWebhook } from './telegram/webhook-utils';
+export * from './types';
 export * as utils from './utils';
-export type {
-  AnswerInlineQuery,
-  Chat,
-  FileBuffer,
-  HandlerMap,
-  InlineHandler,
-  InlineQuery,
-  InlineQueryResult,
-  InlineResult,
-  InputFile,
-  Message,
-  MessageHandler,
-  MessageResponse,
-  NoResponse,
-  ResponseMethod,
-  ResponseObject,
-  TgApiRequest,
-  Update,
-  User,
-} from './wrap-telegram/types';
-export type {
-  AzureHttpFunction,
-  BodyHandler,
-  Context,
-  HttpRequest,
-  HttpResponse,
-  Logger,
-} from './wrap-azure';
+export { wrapAzure, wrapAws, wrapTelegram };
 
 // single combined wrapper for convenience
 export const createAzureTelegramWebhook = (
   handler: MessageHandler | HandlerMap,
   errorChatId?: number,
 ): AzureHttpFunction => wrapAzure(wrapTelegram(handler, errorChatId));
+
+export const createAwsTelegramWebhook = (
+  handler: MessageHandler | HandlerMap,
+  errorChatId?: number,
+): AwsHttpFunction => wrapAws(wrapTelegram(handler, errorChatId));
 
 export default createAzureTelegramWebhook;

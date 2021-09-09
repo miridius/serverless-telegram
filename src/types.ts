@@ -1,3 +1,13 @@
+import type {
+  Context as AzureContext,
+  HttpRequest as AzureHttpRequest,
+  Logger as AzureLogger,
+} from '@azure/functions';
+import type {
+  APIGatewayProxyEventV2 as AwsHttpRequest,
+  APIGatewayProxyResultV2,
+  Context as AwsContext,
+} from 'aws-lambda';
 import { AppendOptions } from 'form-data';
 import type {
   AnswerInlineQueryOptions,
@@ -30,7 +40,7 @@ import type {
   Update,
   User,
 } from 'node-telegram-bot-api';
-import type { Env, MessageEnv, InlineEnv } from './env';
+import type { Env, InlineEnv, MessageEnv } from './telegram/env';
 
 export type {
   Chat,
@@ -42,6 +52,11 @@ export type {
   MessageEnv,
   Update,
   User,
+  AwsHttpRequest,
+  AwsContext,
+  AzureContext,
+  AzureHttpRequest,
+  AzureLogger,
 };
 
 export type Handler<Req, Env, Res> = (req: Req, env: Env) => Promise<Res> | Res;
@@ -232,3 +247,32 @@ export interface SetWebHookOptions {
   max_connections?: number;
   allowed_updates?: string[];
 }
+
+export type Logger = Pick<typeof console, 'debug' | 'info' | 'warn' | 'error'>;
+
+export type Context = AwsContext | AzureContext;
+
+export type BodyHandler<C extends Context = Context> = (
+  body: unknown,
+  ctx: C,
+) => UpdateResponse | Promise<UpdateResponse>;
+
+export interface AzureHttpResponse {
+  status?: number;
+  body?: any;
+  headers?: Record<string, string>;
+}
+
+export type AwsHttpResponse = APIGatewayProxyResultV2<
+  Exclude<UpdateResponse, NoResponse>
+>;
+
+export type AzureHttpFunction = (
+  ctx: AzureContext,
+  req: AzureHttpRequest,
+) => Promise<AzureHttpResponse | undefined>;
+
+export type AwsHttpFunction = (
+  event: AwsHttpRequest,
+  ctx: AwsContext,
+) => Promise<AwsHttpResponse>;

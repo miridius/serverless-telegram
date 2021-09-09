@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`inline response parsing works with results array 1`] = `
+exports[`toAnswerInlineMethod works with results array 1`] = `
 Object {
   "inline_query_id": "q",
   "method": "answerInlineQuery",

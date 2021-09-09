@@ -1,13 +1,14 @@
 import type {
+  BodyHandler,
+  Context,
   HandlerMap,
-  MessageHandler,
-  UpdateResponse,
   Message,
+  MessageHandler,
   Update,
-} from './types';
+  UpdateResponse,
+} from '../types';
 import { isObject } from '../utils';
-import { BodyHandler, Context } from '../wrap-azure';
-import { InlineEnv, MessageEnv } from './env';
+import { getLogger, InlineEnv, MessageEnv } from './env';
 import { callTgApi, hasFileParams } from './telegram-api';
 
 export const isUpdate = (body: unknown): body is Update =>
@@ -36,10 +37,11 @@ export const sendOrReturnRes = async (res: UpdateResponse) => {
 
 export const toBodyHandler = (
   handler: MessageHandler | HandlerMap,
-): BodyHandler<UpdateResponse> => {
+): BodyHandler => {
   const hmap = typeof handler === 'function' ? { message: handler } : handler;
-  return async (ctx: Context, update: unknown): Promise<UpdateResponse> => {
-    ctx.log.verbose('Bot Update:', update);
+  return async (update: unknown, ctx: Context): Promise<UpdateResponse> => {
+    const logger = getLogger(ctx);
+    logger.debug('Bot Update:', update);
     if (!isUpdate(update)) return;
     const msg = getMessage(update);
     const inline = update.inline_query;
@@ -51,29 +53,30 @@ export const toBodyHandler = (
       const env = new InlineEnv(ctx, inline);
       res = env.toUpdateRes(await hmap.inline(inline, env));
     }
-    ctx.log.verbose('Bot Response:', res);
+    logger.debug('Bot Response:', res);
     return sendOrReturnRes(res);
   };
 };
 
 export const wrapErrorReporting = (
-  handler: BodyHandler<UpdateResponse>,
+  handler: BodyHandler,
   errorChatId?: number,
-): BodyHandler<UpdateResponse> => {
-  return async (ctx: Context, update: unknown): Promise<UpdateResponse> => {
+): BodyHandler => {
+  return async (update: unknown, ctx: Context): Promise<UpdateResponse> => {
     try {
-      return await handler(ctx, update);
+      return await handler(update, ctx);
     } catch (err) {
+      const logger = getLogger(ctx);
       let message = `Bot Error while handling this update:
 ${JSON.stringify(update, null, 2)}`;
       if (!errorChatId) {
         // nowhere to send the report to so we just log & throw
-        ctx.log.error(message);
+        logger.error(message);
         throw err;
       }
       // since the error won't be thrown we add the stack trace to the logs
-      message += `\n\n${err.stack}`;
-      ctx.log.error(message);
+      message += `\n\n${(err as Error).stack}`;
+      logger.error(message);
       return { method: 'sendMessage', chat_id: errorChatId, text: message };
     }
   };
@@ -82,7 +85,6 @@ ${JSON.stringify(update, null, 2)}`;
 export const wrapTelegram = (
   handler: MessageHandler | HandlerMap,
   errorChatId?: number,
-): BodyHandler<UpdateResponse> =>
-  wrapErrorReporting(toBodyHandler(handler), errorChatId);
+): BodyHandler => wrapErrorReporting(toBodyHandler(handler), errorChatId);
 
 export default wrapTelegram;
