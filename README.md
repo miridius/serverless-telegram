@@ -130,6 +130,7 @@ Guidance is provided for AWS and Azure, however other cloud providers can be use
 1.  Open the newly created folder in VS code and add `serverless-telegram` as a dependency using the terminal
 
     ```bash
+    npm i
     npm i serverless-telegram
     ```
 
@@ -182,7 +183,7 @@ Guidance is provided for AWS and Azure, however other cloud providers can be use
 
 1.  In the project root, open `template.yml` and make the following changes:
 
-    1. In the Resources section, delete the `helloFromLambdaFunction` and add a `WebhookFunction` as shown below:
+    1. In the `Resources` section, replace the `helloFromLambdaFunction` section with the `WebhookFunction` section as shown below:
 
        ```yaml
        Resources:
@@ -222,14 +223,14 @@ Guidance is provided for AWS and Azure, however other cloud providers can be use
     - Choose a stack name matching your project name, making sure it is unique to your AWS account & region.
     - When asked if it's ok that authorization is not defined, choose Y
     - All other options can be left as default
-1.  Edit the new `samconfig.toml` in your project root and add your stack name as a global parameter, so that you won't need to specify it for other `sam` commands such as `sam logs`:
+1.  If everything worked ok you should see the new Webhook URL in the output section at the end. You will use this URL in steps 10 and 11.
+1.  **Optional:** Edit the new `samconfig.toml` in your project root and add your stack name as a global parameter, so that you won't need to specify it for other `sam` commands such as `sam logs`:
 
     ```toml
     [default.global.parameters]
     stack_name = "<your stack name>"
     ```
 
-1.  If everything worked ok you should see the new Webhook URL in the output section at the end. You will use this URL in the next 2 steps.
 1.  **Optional:** Test your endpoint by sending a JSON POST request to it containing `{"update_id":1,"message":{"chat":{"id":1},"text":"hi"}}` . For example using curl:
     ```bash
     curl -H "Content-Type: application/json" -d '{"update_id":1,"message":{"chat":{"id":1},"text":"hi"}}' <your-webhook-url>
