@@ -14,7 +14,7 @@ describe('dev server', () => {
     expect.assertions(1);
     await withNockback('devServer.json', async () => {
       const server = startDevServer(
-        __dirname + '/test-project-azure/webhook1',
+        __dirname + '/__test-project-azure__/webhook1',
         1,
       )[0];
       server.stop();
@@ -27,7 +27,7 @@ describe('dev server', () => {
     expect.assertions(1);
     await withNockback('devServer.json', async () => {
       const server = startDevServer(
-        __dirname + '/test-project-aws/src/handlers/webhook.lambdaHandler',
+        __dirname + '/__test-project-aws__/src/handlers/webhook.lambdaHandler',
         1,
       )[0];
       server.stop();
@@ -38,7 +38,7 @@ describe('dev server', () => {
 
   it('loads all function scripts in an Azure project (if any)', () => {
     expect(loadWebhooks()).toEqual([]);
-    const projRoot = __dirname + '/test-project-azure';
+    const projRoot = __dirname + '/__test-project-azure__';
     expect(loadWebhooks(projRoot).map((w) => w.path)).toEqual([
       resolve(projRoot, 'webhook1'),
       resolve(projRoot, 'webhook2'),
@@ -48,7 +48,7 @@ describe('dev server', () => {
   it('loads all lambda handlers in an AWS project (if any)', () => {
     expect(loadWebhooks()).toEqual([]);
     expect(loadWebhooks(__dirname)).toEqual([]);
-    const projRoot = __dirname + '/test-project-aws';
+    const projRoot = __dirname + '/__test-project-aws__';
     expect(loadWebhooks(projRoot).map((w) => w.path)).toEqual([
       resolve(projRoot, 'src/handlers/webhook.lambdaHandler'),
     ]);

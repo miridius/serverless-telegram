@@ -1,5 +1,5 @@
-import { deleteWebhook, setWebhook } from '../src/utils';
-import { withNockback } from './helpers';
+import { deleteWebhook, setWebhook } from '../../src';
+import { withNockback } from '../helpers';
 
 process.env.BOT_API_TOKEN ??= '1111:fake_token';
 

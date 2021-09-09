@@ -1,19 +1,19 @@
-import { APIGatewayProxyHandlerV2 } from 'aws-lambda';
 import { existsSync, readdirSync, readFileSync } from 'fs';
 import { Update } from 'node-telegram-bot-api';
 import { resolve } from 'path';
-import {
+import { callTgApi } from './telegram/telegram-api';
+import type {
+  AwsHttpFunction,
   AzureContext,
   AzureHttpFunction,
-  HttpRequest,
-  Logger,
-} from './wrap-http';
-import { callTgApi } from './wrap-telegram/telegram-api';
+  AzureHttpRequest,
+  AzureLogger,
+} from './types';
 
 const withDate = (logger: (...args: any[]) => any) => (...args: any[]) =>
   logger(new Date(), ...args);
 
-const log = withDate(console.log) as Logger;
+const log = withDate(console.log) as AzureLogger;
 Object.assign(log, {
   verbose: withDate(console.debug),
   info: withDate(console.info),
@@ -32,9 +32,10 @@ interface AzureWebhook {
   handler: AzureHttpFunction;
   path: string;
 }
+
 interface AwsWebhook {
   type: 'aws';
-  handler: APIGatewayProxyHandlerV2;
+  handler: AwsHttpFunction;
   path: string;
 }
 
@@ -80,10 +81,12 @@ export class DevServer {
   private async handleUpdate(body: Update) {
     this.offset = calculateNewOffset(this.offset, body);
     const res = await (this.webhook.type === 'azure'
-      ? this.webhook.handler({ log } as AzureContext, { body } as HttpRequest)
+      ? this.webhook.handler(
+          { log } as AzureContext,
+          { body } as AzureHttpRequest,
+        )
       : this.webhook.handler(
           { body: JSON.stringify(body) } as any,
-          null as any,
           null as any,
         ));
     const resBody =

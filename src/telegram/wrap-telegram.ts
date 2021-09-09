@@ -1,15 +1,15 @@
-import { Context } from '..';
-import { isObject } from '../utils';
-import { BodyHandler } from '../wrap-http';
-import { getLogger, InlineEnv, MessageEnv } from './env';
-import { callTgApi, hasFileParams } from './telegram-api';
 import type {
+  BodyHandler,
+  Context,
   HandlerMap,
   Message,
   MessageHandler,
   Update,
   UpdateResponse,
-} from './types';
+} from '../types';
+import { isObject } from '../utils';
+import { getLogger, InlineEnv, MessageEnv } from './env';
+import { callTgApi, hasFileParams } from './telegram-api';
 
 export const isUpdate = (body: unknown): body is Update =>
   isObject(body) && 'update_id' in body;
@@ -85,7 +85,6 @@ ${JSON.stringify(update, null, 2)}`;
 export const wrapTelegram = (
   handler: MessageHandler | HandlerMap,
   errorChatId?: number,
-): BodyHandler<UpdateResponse> =>
-  wrapErrorReporting(toBodyHandler(handler), errorChatId);
+): BodyHandler => wrapErrorReporting(toBodyHandler(handler), errorChatId);
 
 export default wrapTelegram;

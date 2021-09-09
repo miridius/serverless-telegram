@@ -1,18 +1,18 @@
-import { Context } from '../wrap-http';
+import type {
+  Context,
+  InlineQuery,
+  InlineResponse,
+  Logger,
+  Message,
+  MessageResponse,
+  UpdateResponse,
+} from '../types';
 import {
   callTgApi,
   toAnswerInlineMethod,
   toResponseMethod,
 } from './telegram-api';
-import type {
-  InlineQuery,
-  InlineResponse,
-  Message,
-  MessageResponse,
-  UpdateResponse,
-} from './types';
 
-export type Logger = Pick<typeof console, 'debug' | 'info' | 'warn' | 'error'>;
 export const getLogger = (ctx: Context): Logger =>
   ctx && typeof ctx === 'object' && 'log' in ctx
     ? { debug: ctx.log.verbose, ...ctx.log }

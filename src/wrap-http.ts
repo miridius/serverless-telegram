@@ -1,30 +1,16 @@
-import { Context as AzureContext, HttpRequest, Logger } from '@azure/functions';
-import { APIGatewayProxyHandlerV2, Context as AwsContext } from 'aws-lambda';
-import { UpdateResponse } from './wrap-telegram/types';
-export { AwsContext, AzureContext, HttpRequest, Logger };
+import type {
+  AwsContext,
+  AwsHttpFunction,
+  AzureContext,
+  AzureHttpFunction,
+  AzureHttpResponse,
+  BodyHandler,
+} from './types';
 
-export type Context = AwsContext | AzureContext;
-
-export type BodyHandler<R = UpdateResponse, C extends Context = Context> = (
-  body: unknown,
-  ctx: C,
-) => R | Promise<R>;
-
-export interface HttpResponse {
-  status?: number;
-  body?: any;
-  headers?: Record<string, string>;
-}
-
-export type AzureHttpFunction = (
-  ctx: AzureContext,
-  req: HttpRequest,
-) => Promise<HttpResponse | undefined>;
-
-export const isHttpResponse = (r?: any): r is HttpResponse =>
+export const isHttpResponse = (r?: any): r is AzureHttpResponse =>
   typeof r === 'object' && ('status' in r || 'body' in r || 'headers' in r);
 
-const toHttpResponse = (output?: any): HttpResponse | undefined => {
+const toHttpResponse = (output?: any): AzureHttpResponse | undefined => {
   if (!output) return undefined;
   if (isHttpResponse(output)) return output;
   if (typeof output === 'string') return { body: output };
@@ -33,11 +19,11 @@ const toHttpResponse = (output?: any): HttpResponse | undefined => {
 };
 
 export const wrapAzure = (
-  handler: BodyHandler<UpdateResponse, AzureContext>,
+  handler: BodyHandler<AzureContext>,
 ): AzureHttpFunction => async (ctx, { body }) =>
   (ctx.res = toHttpResponse(body && (await handler(body, ctx))));
 
 export const wrapAws = (
-  handler: BodyHandler<UpdateResponse, AwsContext>,
-): APIGatewayProxyHandlerV2<UpdateResponse> => async ({ body }, ctx) =>
+  handler: BodyHandler<AwsContext>,
+): AwsHttpFunction => async ({ body }, ctx) =>
   (body && (await handler(JSON.parse(body), ctx))) || '';

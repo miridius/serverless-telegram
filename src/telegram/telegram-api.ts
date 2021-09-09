@@ -1,7 +1,6 @@
 import FormData from 'form-data';
 import { createReadStream } from 'fs';
 import fetch, { RequestInit } from 'node-fetch';
-import { isFileBuffer, isFileUrl, isObject, toFileUrl } from '../utils';
 import {
   AnswerInlineQuery,
   InlineQueryResult,
@@ -16,7 +15,8 @@ import {
   ResponseObject,
   TgApiRequest,
   UpdateResponse,
-} from './types';
+} from '../types';
+import { isFileBuffer, isFileUrl, isObject, toFileUrl } from '../utils';
 
 const getMethod = (res: ResponseObject): ResponseMethod['method'] | undefined =>
   Object.keys(res)
