@@ -281,16 +281,16 @@ module.exports = createAzureTelegramWebhook(async (msg, env) => {
 
 ## Creating a webhook
 
-This library has a functional-style API in order to facilitate easier testing. You can write your message and/or inline query handlers as pure functions and then pass them to `createAzureTelegramWebhook` or `createAwsTelegramWebhook`, which will turn it/them into an azure http function/aws lambda handler ready for deployment to your chosen cloud.
+This library has a functional-style API in order to facilitate easier testing. You can write your message and/or inline query handlers as pure functions and then pass them to `createAzureTelegramWebhook` or `createAwsTelegramWebhook`, which will turn it/them into an azure http function or aws lambda handler ready for deployment to your chosen cloud.
 
 `createAzureTelegramWebhook` and `createAwsTelegramWebhook` take 2 arguments:
 
 - `handler` - either a [HandlerMap](#HandlerMap) or just a [MessageHandler](#MessageHandler)
 - `errorChatId` _(optional)_ - see [Receiving error reports](#receiving-error-reports)
 
-The return value should then be exported by your function's main script.
+The return value should then be exported by your function's main script in the case of Azure, or as a named export matching your handler path (usually lambdaHandler) in the case of AWS.
 
-Once deployed to the cloud, you'll need to get the Azure function URL (you can do this via the VS code extension) or AWS API Gateway URL (it is usually printed to the console after deployment) and set it as your bot's webhook. To do the latter step, a CLI tool is provided for convenience:
+Once deployed to the cloud, you'll need to get the Azure function URL (you can do this via the VS code extension) or AWS API Gateway URL (printed to the console after deployment) and set it as your bot's webhook. A CLI command is provided for this step:
 
 ```sh
 BOT_API_TOKEN=<your-bot-token> npx set-webhook <your-function-url>
@@ -513,9 +513,24 @@ By default, `start-dev-server` will search your current directory for functions 
 
 An optional second argument can be passed to change the [long poll timeout](https://core.telegram.org/bots/api#getupdates)
 
-## Using with other cloud providers (GCP)
+## Using with other cloud providers (GCP, etc.)
 
-`createAzureTelegramWebhook` and `createAwsTelegramWebhook` are internally made of two parts: `wrapTelegram` and `wrapAzure`/`wrapAws`. To use this library for other platforms besides Azure, you can use `wrapTelegram` directly and write your own http wrapper. `wrapTelegram` takes the same arguments as `createAzureTelegramWebhook`, and will return a function that takes the JSON-parsed webhook body (i.e. a telegram update object) and returns the desired response body as a JS object (not stringified).
+`createAzureTelegramWebhook` and `createAwsTelegramWebhook` are internally made of two parts: `wrapTelegram` and `wrapAzure`/`wrapAws`. To use this library for other platforms besides Azure, you can use `wrapTelegram` directly and write your own http wrapper. `wrapTelegram` takes the same arguments as `create[Azure|Aws]TelegramWebhook`, and will return a function that takes the JSON-parsed webhook body (i.e. a telegram update object) and returns the desired response body as a JS object (not stringified).
+
+For example, wrapAws looks like this:
+
+```ts
+export const wrapAws = (
+  handler: BodyHandler<AwsContext>,
+): AwsHttpFunction => async ({ body }, ctx) =>
+  (body && (await handler(JSON.parse(body), ctx))) || '';
+```
+
+A few things are happening here:
+
+1. The body property is extracted from the incoming event object
+1. AWS does not parse JSON bodies automatically so we must do this ourselves
+1. AWS will accept a JS object as a response and automatically stringify it, but it will not accept falsy values like undefined or null, instead we must convert this to an empty string
 
 # Developing serverless-telegram (via [TSDX](https://github.com/formium/tsdx))
 
