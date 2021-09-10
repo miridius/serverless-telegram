@@ -15,6 +15,7 @@ describe('dev server', () => {
     await withNockback('devServer.json', async () => {
       const server = startDevServer(
         __dirname + '/__test-project-azure__/webhook1',
+        'silent',
         1,
       )[0];
       server.stop();
@@ -28,6 +29,7 @@ describe('dev server', () => {
     await withNockback('devServer.json', async () => {
       const server = startDevServer(
         __dirname + '/__test-project-aws__/src/handlers/webhook.lambdaHandler',
+        undefined,
         1,
       )[0];
       server.stop();

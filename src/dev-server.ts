@@ -10,16 +10,28 @@ import type {
   AzureLogger,
 } from './types';
 
-const withDate = (logger: (...args: any[]) => any) => (...args: any[]) =>
-  logger(new Date(), ...args);
+const LOG_LEVELS = ['debug', 'info', 'warn', 'error', 'silent'] as const;
+type LogLevel = typeof LOG_LEVELS[number];
 
-const log = withDate(console.log) as AzureLogger;
-Object.assign(log, {
-  verbose: withDate(console.debug),
-  info: withDate(console.info),
-  warn: withDate(console.warn),
-  error: withDate(console.error),
-});
+const logFn = (
+  logger: (...args: any[]) => any,
+  level: LogLevel,
+  minLevel: LogLevel,
+) =>
+  LOG_LEVELS.indexOf(level) >= LOG_LEVELS.indexOf(minLevel)
+    ? (...args: any[]) => logger(new Date(), level.toUpperCase(), ...args)
+    : (..._: any[]) => {};
+
+const createLogger = (minLogLevel: LogLevel): AzureLogger => {
+  const logger = logFn(console.log, 'info', minLogLevel) as AzureLogger;
+  Object.assign(logger, {
+    verbose: logFn(console.debug, 'debug', minLogLevel),
+    info: logFn(console.info, 'info', minLogLevel),
+    warn: logFn(console.warn, 'warn', minLogLevel),
+    error: logFn(console.error, 'error', minLogLevel),
+  });
+  return logger;
+};
 
 export const calculateNewOffset = (offset?: number, update?: Update) => {
   if (!update) return offset;
@@ -42,20 +54,18 @@ interface AwsWebhook {
 type Webhook = AzureWebhook | AwsWebhook;
 
 export class DevServer {
-  webhook: Webhook;
-  timeout: number;
-
   running = false;
   offset?: number;
 
-  constructor(webhook: Webhook, longPollTimeoutSecs: number = 55) {
-    this.webhook = webhook;
-    this.timeout = longPollTimeoutSecs;
-  }
+  constructor(
+    private webhook: Webhook,
+    private log: AzureLogger = createLogger('debug'),
+    private timeout: number = 55,
+  ) {}
 
   stop() {
     this.running = false;
-    log.info('server will stop when the current update cycle completes');
+    this.log.info('server will stop when the current update cycle completes');
     return this;
   }
 
@@ -67,7 +77,9 @@ export class DevServer {
 
   private async getUpdates() {
     if (!this.running) return;
-    log.verbose(`long polling for updates (max timeout: ${this.timeout}s)`);
+    this.log.verbose(
+      `long polling for updates (max timeout: ${this.timeout}s)`,
+    );
     const updates = await callTgApi({
       method: 'getUpdates',
       offset: this.offset,
@@ -82,7 +94,7 @@ export class DevServer {
     this.offset = calculateNewOffset(this.offset, body);
     const res = await (this.webhook.type === 'azure'
       ? this.webhook.handler(
-          { log } as AzureContext,
+          { log: this.log } as AzureContext,
           { body } as AzureHttpRequest,
         )
       : this.webhook.handler(
@@ -168,6 +180,9 @@ export const loadWebhooks = (projectOrFunctionDir: string = '.'): Webhook[] =>
  * directories. AWS: pass either a specific handler path or your project root
  * (defaults to `'.'`) to read the template.yml and find all lambda handlers.
  *
+ * @param minLogLevel Set the granularity of the log messages printed to console
+ * (default: debug)
+ *
  * @param timeout Max timeout in seconds for long polling, defaults to `55`.
  * See the {@link https://core.telegram.org/bots/api#getupdates|docs} for more.
  *
@@ -177,12 +192,14 @@ export const loadWebhooks = (projectOrFunctionDir: string = '.'): Webhook[] =>
  */
 export const startDevServer = (
   projectOrFunctionDirOrHandlerPath?: string,
-  timeout?: number,
+  minLogLevel: LogLevel = 'debug',
+  timeout = 55,
 ): DevServer[] => {
   const webhooks = loadWebhooks(projectOrFunctionDirOrHandlerPath);
   if (!webhooks.length) throw new Error('no function entry points found');
+  const log = createLogger(minLogLevel);
   return webhooks.map((webhook) => {
     log.info('Starting dev server for', webhook.path);
-    return new DevServer(webhook, timeout).start();
+    return new DevServer(webhook, log, timeout).start();
   });
 };
