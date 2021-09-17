@@ -4,8 +4,10 @@ import type {
   Logger as AzureLogger,
 } from '@azure/functions';
 import type {
-  APIGatewayProxyEventV2 as AwsHttpRequest,
-  APIGatewayProxyResultV2,
+  APIGatewayEvent,
+  APIGatewayProxyEventV2,
+  APIGatewayProxyResult,
+  APIGatewayProxyStructuredResultV2,
   Context as AwsContext,
 } from 'aws-lambda';
 import { AppendOptions } from 'form-data';
@@ -52,7 +54,6 @@ export type {
   MessageEnv,
   Update,
   User,
-  AwsHttpRequest,
   AwsContext,
   AzureContext,
   AzureHttpRequest,
@@ -263,9 +264,10 @@ export interface AzureHttpResponse {
   headers?: Record<string, string>;
 }
 
-export type AwsHttpResponse = APIGatewayProxyResultV2<
-  Exclude<UpdateResponse, NoResponse>
->;
+export type AwsHttpRequest = APIGatewayEvent | APIGatewayProxyEventV2;
+export type AwsHttpResponse =
+  | APIGatewayProxyResult
+  | APIGatewayProxyStructuredResultV2;
 
 export type AzureHttpFunction = (
   ctx: AzureContext,

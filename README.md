@@ -55,70 +55,13 @@ The most support is provided for AWS Lambda and Azure Function Apps but other pl
 
 # Getting Started
 
-Guidance is provided for AWS and Azure, however other cloud providers can be used as well as long as you write your own HTTP wrapper
+Guidance is provided for AWS and Azure, however other cloud providers can be used as well as long as you write your own HTTP wrapper.
 
-## On Azure
-
-1. Use the [official quickstart](https://docs.microsoft.com/en-us/azure/azure-functions/create-first-function-vs-code-node) to create a new Azure function using JavaScript or TypeScript. I recommend calling the function something like "telegram-webhook" or just "webhook" but it really doesn't matter.
-1. Install `serverless-telegram` as a dependency:
-
-   ```bash
-   npm install serverless-telegram
-   ```
-
-1. Replace the function's `index.js` or `index.ts` with the following:
-
-   - JavaScript:
-
-     ```js
-     const { createAzureTelegramWebhook } = require('serverless-telegram');
-
-     module.exports = createAzureTelegramWebhook(
-       ({ text }) => text && `You said: ${text}`,
-     );
-     ```
-
-   - TypeScript:
-
-     ```ts
-     import { createAzureTelegramWebhook } from 'serverless-telegram';
-
-     export default createAzureTelegramWebhook(
-       ({ text }) => text && `You said: ${text}`,
-     );
-     ```
-
-1. Edit the function's `function.json` and set `authLevel` to `function` and `methods` to `["post"]`, for example:
-
-   ```json
-   {
-     "bindings": [
-       {
-         "authLevel": "function",
-         "type": "httpTrigger",
-         "direction": "in",
-         "name": "req",
-         "methods": ["post"]
-       },
-       {
-         "type": "http",
-         "direction": "out",
-         "name": "res"
-       }
-     ]
-   }
-   ```
-
-1. Use the VSCode Azure extension to add a new Application Setting to your app: `NODE_ENV`=`production`
-1. Re-deploy the app (replace existing deployment)
-1. Copy the URL of your deployed function using the VS code extension
-1. Create a new telegram bot and set its webhook to point to this URL. A CLI tool is provided for convenience:
-   ```sh
-   BOT_API_TOKEN=<your-bot-token> npx set-webhook <your-function-url>
-   ```
-1. Start a private chat with the bot and say "/start". It should reply with "You said: /start"
+The choice of provider is up to you, however it has been our experience that Azure provides a much nicer developer experience whereas AWS provides significantly better performance and more sensible billing. As such if you are brand new to both platforms it is probably worth starting on Azure and then moving to AWS once you have more experience. The same code will work on both platforms.
 
 ## On AWS
+
+Note: the below instructions assume you are using AWS SAM, however if you know what you are doing you can adapt them for any deployment method.
 
 1.  If you haven't already, install the [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html) and [configure your credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html#cli-configure-quickstart-config)
 1.  Install the [SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html), or if you already have it installed make sure that it is **at least version 1.31** by running `sam --version`
@@ -182,54 +125,68 @@ Guidance is provided for AWS and Azure, however other cloud providers can be use
 
     You can run your tests by running `npm t`
 
-1.  In the project root, open `template.yml` and make the following changes:
+1.  In the project root, open `template.yml` replace the `Resources` section and add an `Output` section so that it looks like the example below:
 
-    1. In the `Resources` section, replace the `helloFromLambdaFunction` section with the `WebhookFunction` section as shown below:
+    ```yaml
+    # This is the SAM template that represents the architecture of your serverless application
+    # https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-template-basics.html
 
-       ```yaml
-       Resources:
-         # Each Lambda function is defined by properties:
-         # https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    # The AWSTemplateFormatVersion identifies the capabilities of the template
+    # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/format-version-structure.html
+    AWSTemplateFormatVersion: 2010-09-09
+    Description: >-
+      your-app-name
 
-         # This is a Lambda function config associated with the source code: webhook.js
-         WebhookFunction:
-           Type: AWS::Serverless::Function
-           Properties:
-             Handler: src/handlers/webhook.lambdaHandler
-             Runtime: nodejs14.x
-             Description: Webhook to receive updates from the Telegram bot API
-             MemorySize: 128
-             Timeout: 50
-             Events:
-               Webhook:
-                 Type: HttpApi # More info about HttpApi Event Source: https://github.com/aws/serverless-application-model/blob/master/versions/2016-10-31.md#httpapi
-                 Properties:
-                   Path: /webhook
-                   Method: POST
-       ```
+    # Transform section specifies one or more macros that AWS CloudFormation uses to process your template
+    # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/transform-section-structure.html
+    Transform:
+      - AWS::Serverless-2016-10-31
 
-    1. Add an Outputs section at the end of the file:
+    # Resources declares the AWS resources that you want to include in the stack
+    # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/resources-section-structure.html
+    Resources:
+      # Each Lambda function is defined by properties:
+      # https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
 
-       ```yaml
-       Outputs:
-         # ServerlessHttpApi is an implicit API created out of Events key under Serverless::Function
-         # Find out more about other implicit resources you can reference within SAM
-         # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
-         WebhookApi:
-           Description: 'HTTP API endpoint URL for Telegram webhook'
-           Value: !Sub 'https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/webhook'
-       ```
+      # This is a Lambda function config associated with the source code: webhook.js
+      WebhookFunction:
+        Type: AWS::Serverless::Function
+        Properties:
+          Handler: src/handlers/webhook.lambdaHandler
+          Runtime: nodejs14.x
+          Description: Webhook to receive updates from the Telegram bot API
+          MemorySize: 128
+          Timeout: 50
+          Events:
+            Webhook:
+              Type: HttpApi # More info about HttpApi Event Source: https://github.com/aws/serverless-application-model/blob/master/versions/2016-10-31.md#httpapi
+              Properties:
+                Path: /webhook
+                Method: POST
+
+    Outputs:
+      # ServerlessHttpApi is an implicit API created out of Events key under Serverless::Function
+      # Find out more about other implicit resources you can reference within SAM
+      # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+      WebhookApi:
+        Description: 'HTTP API endpoint URL for Telegram webhook'
+        Value: !Sub 'https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/webhook'
+    ```
+
+    Note: You can also use a RestApi instead of an HttpApi if you prefer. Both are supported.
 
 1.  Deploy your function to AWS by running `sam deploy --guided`.
     - Choose a stack name matching your project name, making sure it is unique to your AWS account & region.
     - When asked if it's ok that authorization is not defined, choose Y
     - All other options can be left as default
 1.  If everything worked ok you should see the new Webhook URL in the output section at the end. You will use this URL in steps 10 and 11.
-1.  **Optional:** Edit the new `samconfig.toml` in your project root and add your stack name as a global parameter, so that you won't need to specify it for other `sam` commands such as `sam logs`:
+1.  **Optional:** Edit the new `samconfig.toml` in your project root and add your stack name as a global parameter and your the function name as a logs paramter so that you don't have to specify it:
 
     ```toml
     [default.global.parameters]
     stack_name = "<your stack name>"
+    [default.logs.parameters]
+    name = "WebhookFunction"
     ```
 
 1.  **Optional:** Test your endpoint by sending a JSON POST request to it containing `{"update_id":1,"message":{"chat":{"id":1},"text":"hi"}}` . For example using curl:
@@ -240,7 +197,7 @@ Guidance is provided for AWS and Azure, however other cloud providers can be use
     In case you get an internal server error response, check your function's logs by running:
     ```bash
     # add -t to tail
-    sam logs -n WebhookFunction
+    sam logs
     ```
 1.  Create a new telegram bot and copy the API token. Then set its webhook to point to this URL with the provided CLI command:
     ```sh
@@ -248,6 +205,67 @@ Guidance is provided for AWS and Azure, however other cloud providers can be use
     ```
 1.  Start a private chat with the bot and say "/start". It should reply with "You said: /start"
 1.  From now on whenever you want to deploy changes you can do so by running `sam deploy`.
+
+## On Azure
+
+1. Use the [official quickstart](https://docs.microsoft.com/en-us/azure/azure-functions/create-first-function-vs-code-node) to create a new Azure function using JavaScript or TypeScript. I recommend calling the function something like "telegram-webhook" or just "webhook" but it really doesn't matter.
+1. Install `serverless-telegram` as a dependency:
+
+   ```bash
+   npm install serverless-telegram
+   ```
+
+1. Replace the function's `index.js` or `index.ts` with the following:
+
+   - JavaScript:
+
+     ```js
+     const { createAzureTelegramWebhook } = require('serverless-telegram');
+
+     module.exports = createAzureTelegramWebhook(
+       ({ text }) => text && `You said: ${text}`,
+     );
+     ```
+
+   - TypeScript:
+
+     ```ts
+     import { createAzureTelegramWebhook } from 'serverless-telegram';
+
+     export default createAzureTelegramWebhook(
+       ({ text }) => text && `You said: ${text}`,
+     );
+     ```
+
+1. Edit the function's `function.json` and set `authLevel` to `function` and `methods` to `["post"]`, for example:
+
+   ```json
+   {
+     "bindings": [
+       {
+         "authLevel": "function",
+         "type": "httpTrigger",
+         "direction": "in",
+         "name": "req",
+         "methods": ["post"]
+       },
+       {
+         "type": "http",
+         "direction": "out",
+         "name": "res"
+       }
+     ]
+   }
+   ```
+
+1. Use the VSCode Azure extension to add a new Application Setting to your app: `NODE_ENV`=`production`
+1. Re-deploy the app (replace existing deployment)
+1. Copy the URL of your deployed function using the VS code extension
+1. Create a new telegram bot and set its webhook to point to this URL. A CLI tool is provided for convenience:
+   ```sh
+   BOT_API_TOKEN=<your-bot-token> npx set-webhook <your-function-url>
+   ```
+1. Start a private chat with the bot and say "/start". It should reply with "You said: /start"
 
 ## Next steps
 

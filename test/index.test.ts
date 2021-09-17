@@ -16,14 +16,10 @@ const azureRequest = {
   },
 } as AzureHttpRequest;
 
-const awsRequest = {
-  body: JSON.stringify(azureRequest.body),
-} as AwsHttpRequest;
-
 const azureResponse = {
   body: {
-    chat_id: 1,
     method: 'sendMessage',
+    chat_id: 1,
     text: 'more good things please',
   },
   headers: {
@@ -31,7 +27,15 @@ const azureResponse = {
   },
 };
 
-const awsResponse = azureResponse.body;
+const awsRequest = {
+  body: JSON.stringify(azureRequest.body),
+} as AwsHttpRequest;
+
+const awsResponse = {
+  statusCode: 200,
+  headers: azureResponse.headers,
+  body: JSON.stringify(azureResponse.body),
+};
 
 const handler: MessageHandler = ({ text }: Message): MessageResponse => text;
 

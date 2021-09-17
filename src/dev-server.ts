@@ -3,13 +3,7 @@ import { Update } from 'node-telegram-bot-api';
 import { resolve } from 'path';
 import { callTgApi } from './telegram/telegram-api';
 import { defaultWebhookOpts } from './telegram/webhook-utils';
-import type {
-  AwsHttpFunction,
-  AzureContext,
-  AzureHttpFunction,
-  AzureHttpRequest,
-  AzureLogger,
-} from './types';
+import type { AwsHttpFunction, AzureHttpFunction, AzureLogger } from './types';
 
 const LOG_LEVELS = ['debug', 'info', 'warn', 'error', 'silent'] as const;
 type LogLevel = typeof LOG_LEVELS[number];
@@ -94,18 +88,16 @@ export class DevServer {
 
   private async handleUpdate(body: Update) {
     this.offset = calculateNewOffset(this.offset, body);
+
     const res = await (this.webhook.type === 'azure'
-      ? this.webhook.handler(
-          { log: this.log } as AzureContext,
-          { body } as AzureHttpRequest,
-        )
-      : this.webhook.handler(
-          { body: JSON.stringify(body) } as any,
-          null as any,
-        ));
-    const resBody =
-      res && typeof res === 'object' && 'body' in res ? res.body : res;
-    return resBody && callTgApi(resBody);
+      ? this.webhook
+          .handler({ log: this.log } as any, { body } as any)
+          .then((r) => r?.body)
+      : this.webhook
+          .handler({ body: JSON.stringify(body) } as any, null as any)
+          .then((r) => r.body && JSON.parse(r.body)));
+
+    return res && callTgApi(res);
   }
 }
 

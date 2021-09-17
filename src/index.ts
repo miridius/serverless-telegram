@@ -13,7 +13,7 @@ export { Env, InlineEnv, MessageEnv } from './telegram/env';
 export { deleteWebhook, setWebhook } from './telegram/webhook-utils';
 export * from './types';
 export * as utils from './utils';
-export { wrapAzure, wrapAws, wrapTelegram };
+export { wrapAzure, wrapAws as wrapAws, wrapTelegram };
 
 // single combined wrapper for convenience
 export const createAzureTelegramWebhook = (

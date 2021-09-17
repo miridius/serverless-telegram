@@ -23,7 +23,16 @@ export const wrapAzure = (
 ): AzureHttpFunction => async (ctx, { body }) =>
   (ctx.res = toHttpResponse(body && (await handler(body, ctx))));
 
+// will work with both V1 and V2 payload format versions
 export const wrapAws = (
   handler: BodyHandler<AwsContext>,
-): AwsHttpFunction => async ({ body }, ctx) =>
-  (body && (await handler(JSON.parse(body), ctx))) || '';
+): AwsHttpFunction => async ({ body }, ctx) => {
+  const response = body && (await handler(JSON.parse(body), ctx));
+  return {
+    statusCode: 200,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: response ? JSON.stringify(response) : '',
+  };
+};
