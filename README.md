@@ -511,7 +511,9 @@ Now try sending a message to your dev bot in telegram and you should see it work
 
 By default, `start-dev-server` will search your current directory for functions and run a dev server for any that it finds, but you can change this by passing a specific function directory to run only that function, or a path to your project root if you're running from elsewhere.
 
-An optional second argument can be passed to change the [long poll timeout](https://core.telegram.org/bots/api#getupdates)
+An optional second argument can be passed to change the logging level. Possible values are `debug` (the default), `info`, `warn`, `error`, and `silent`
+
+An optional third argument can be passed to change the [long poll timeout](https://core.telegram.org/bots/api#getupdates)
 
 ## Using with other cloud providers (GCP, etc.)
 
