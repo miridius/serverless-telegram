@@ -26,7 +26,8 @@
   "module": "dist/serverless-telegram.esm.js",
   "bin": {
     "start-dev-server": "bin/start-dev-server.js",
-    "set-webhook": "bin/set-webhook.js"
+    "set-webhook": "bin/set-webhook.js",
+    "delete-webhook": "bin/delete-webhook.js"
   },
   "files": [
     "dist",

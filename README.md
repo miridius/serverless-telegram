@@ -37,6 +37,7 @@ The most support is provided for AWS Lambda and Azure Function Apps but other pl
   - [Running a local bot server during development](#running-a-local-bot-server-during-development)
     - [TL;DR](#tldr)
     - [Long version](#long-version)
+    - [Deleting an existing webhook](#deleting-an-existing-webhook)
   - [Using with other cloud providers (AWS, GCP, etc)](#using-with-other-cloud-providers-aws-gcp-etc)
 - [Developing serverless-telegram (via <a href="https://github.com/formium/tsdx">TSDX</a>)](#developing-serverless-telegram-via-tsdx)
   - [Initial Setup](#initial-setup)
@@ -487,6 +488,8 @@ An easy way to find out your chat ID is to send your bot a message and check the
 1. `echo 'BOT_API_TOKEN=<your dev bot's API token>' >> .env`
 1. `npm run dev`
 
+If you get an error due to a webhook being set, see [Deleting an existing webhook](#deleting-an-existing-webhook)
+
 ### Long version
 
 Deploying to the cloud every time you want to test your bot would be a pain, which is why serverless-telegram comes with a built in **dev server**. It will use telegram's `getUpdates` method to listen for bot updates, run them through your function code, and send the response back to the bot API.
@@ -514,6 +517,16 @@ By default, `start-dev-server` will search your current directory for functions 
 An optional second argument can be passed to change the logging level. Possible values are `debug` (the default), `info`, `warn`, `error`, and `silent`
 
 An optional third argument can be passed to change the [long poll timeout](https://core.telegram.org/bots/api#getupdates)
+
+### Deleting an existing webhook
+
+If you try to run a dev server for a bot which has a webhook set, it will fail since you cannot manually pull updates for a bot that also sends its updates to a webhook. If you are repurposing an existing bot and no longer need its webhook set, there is a CLI command provided to delete the webhook:
+
+```sh
+npx env-cmd delete-webhook
+# or if you want to run for another bot whose token is not in your .env file
+BOT_API_TOKEN=<bot api token> npx delete-webhook
+```
 
 ## Using with other cloud providers (GCP, etc.)
 
