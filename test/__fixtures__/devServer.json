@@ -4,7 +4,14 @@
     "method": "POST",
     "path": "/bot1111:fake_token/getUpdates",
     "body": {
-      "timeout": 1
+      "timeout": 1,
+      "allowed_updates": [
+        "message",
+        "edited_message",
+        "channel_post",
+        "edited_channel_post",
+        "inline_query"
+      ]
     },
     "status": 200,
     "response": {
