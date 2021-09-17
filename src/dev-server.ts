@@ -2,6 +2,7 @@ import { existsSync, readdirSync, readFileSync } from 'fs';
 import { Update } from 'node-telegram-bot-api';
 import { resolve } from 'path';
 import { callTgApi } from './telegram/telegram-api';
+import { defaultWebhookOpts } from './telegram/webhook-utils';
 import type {
   AwsHttpFunction,
   AzureContext,
@@ -84,6 +85,7 @@ export class DevServer {
       method: 'getUpdates',
       offset: this.offset,
       timeout: this.timeout,
+      allowed_updates: defaultWebhookOpts.allowed_updates,
     });
     // process updates in parallel
     await Promise.all(updates.map((u: Update) => this.handleUpdate(u)));
