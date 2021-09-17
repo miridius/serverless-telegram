@@ -7,7 +7,6 @@ import type {
   APIGatewayEvent,
   APIGatewayProxyEventV2,
   APIGatewayProxyResult,
-  APIGatewayProxyResultV2,
   APIGatewayProxyStructuredResultV2,
   Context as AwsContext,
 } from 'aws-lambda';
