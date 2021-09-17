@@ -36,8 +36,8 @@
   "scripts": {
     "start": "tsdx watch",
     "build": "tsdx build",
-    "test": "tsdx test --ci",
-    "test:watch": "tsdx test --clearCache && tsdx test --watchAll",
+    "test": "tsdx test --ci --no-cache",
+    "test:watch": "tsdx test --watchAll --no-cache",
     "test:env": "env-cmd tsdx test",
     "lint": "tsdx lint src test",
     "prepare": "tsdx build",
