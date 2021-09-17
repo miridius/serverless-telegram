@@ -88,13 +88,24 @@ describe('wrapAzure', () => {
 describe('wrapAws', () => {
   const echo = wrapAws(async (x: any) => x);
 
-  it('parses Json', () => {
-    return expect(
-      echo({ body: JSON.stringify(jsonObj) } as any, awsCtx),
-    ).resolves.toEqual(jsonObj);
+  it('parses JSON input and stringifies JSON output', () => {
+    let body = JSON.stringify(jsonObj);
+    return expect(echo({ body } as any, awsCtx)).resolves.toEqual({
+      statusCode: 200,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body,
+    });
   });
 
-  it('ignores empty body and returns empty string instead of undefined', () => {
-    return expect(echo({} as any, awsCtx)).resolves.toEqual('');
+  it('ignores empty body in input and returns an empty body in output', () => {
+    return expect(echo({} as any, awsCtx)).resolves.toEqual({
+      statusCode: 200,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: '',
+    });
   });
 });

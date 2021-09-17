@@ -28,6 +28,14 @@ describe('setWebhook', () => {
     });
   });
 
+  it('throws an error if no URL is passed', () => {
+    return expect(() =>
+      setWebhook({ url: '' }),
+    ).rejects.toThrowErrorMatchingInlineSnapshot(
+      `"You must provide a URL to set the webhook"`,
+    );
+  });
+
   it('throws an error if the webhook was not updated successfully', () => {
     return withNockback('setWebhook2.json', () => {
       return expect(() =>
