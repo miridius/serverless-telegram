@@ -572,9 +572,9 @@ A few things are happening here:
 Prerequisites:
 
 - NodeJS v14 (to support Azure/AWS functions)
-- Yarn (to support package resolutions overrides)
+- Pnpm (to support package resolutions overrides)
 
-Clone the repo and then run `yarn install`
+Clone the repo and then run `pnpm install`
 
 ## Commands
 
@@ -583,16 +583,16 @@ TSDX scaffolds the library inside `/src`.
 To run TSDX, use:
 
 ```bash
-yarn start
+pnpm start
 ```
 
 This builds to `/dist` and runs the project in watch mode so any edits you save inside `src` causes a rebuild to `/dist`.
 
-To do a one-off build, use `yarn build`.
+To do a one-off build, use `pnpm build`.
 
-To run tests, use `yarn test`.
+To run tests, use `pnpm test`.
 
-To run tests in watch mode, use `yarn test:watch`.
+To run tests in watch mode, use `pnpm test:watch`.
 
 ## Configuration
 
@@ -600,7 +600,7 @@ Code quality is set up for you with `prettier`, `husky` (v3, since v4 does not s
 
 ### Jest
 
-Jest tests are set up to run with `yarn test`.
+Jest tests are set up to run with `pnpm test`.
 
 ### Bundle Analysis
 
@@ -647,7 +647,7 @@ The appropriate paths are configured in `package.json` and `dist/index.js` accor
 
 ## Publishing to NPM
 
-Run `yarn release`
+Run `pnpm release`
 
 ```
 

@@ -23,16 +23,16 @@ jobs:
           node-version: ${{ matrix.node }}
 
       - name: Install and audit dependencies
-        run: yarn install --frozen-lockfile --audit
+        run: pnpm install --frozen-lockfile --audit
 
       - name: Lint
-        run: yarn lint
+        run: pnpm lint
 
       - name: Test
-        run: yarn test
+        run: pnpm test
 
       - name: Build
-        run: yarn build
+        run: pnpm build
 
       - name: Send test coverage data to Code Climate
         if: startsWith(matrix.os, 'ubuntu')
