@@ -57,7 +57,7 @@ describe('toAnswerInlineMethod', () => {
 describe('callTgApi', () => {
   it('ignores empty requests', () => {
     return expect(
-      callTgApi((undefined as unknown) as TgApiRequest),
+      callTgApi(undefined as unknown as TgApiRequest),
     ).resolves.toBeUndefined();
   });
 
@@ -85,7 +85,7 @@ describe('callTgApi', () => {
   it('throws an error when passed a request with no method', () => {
     delete process.env.BOT_API_TOKEN;
     return expect(() =>
-      callTgApi(({ foo: 1 } as unknown) as TgApiRequest),
+      callTgApi({ foo: 1 } as unknown as TgApiRequest),
     ).rejects.toThrowErrorMatchingInlineSnapshot(
       `"No method in request: {\\"foo\\":1}"`,
     );

@@ -1,5 +1,12 @@
 import { resolve } from 'path';
-import { Chat, InlineQuery, Message, ResponseMethod, Update } from '../../src';
+import {
+  CallbackQuery,
+  Chat,
+  InlineQuery,
+  Message,
+  ResponseMethod,
+  Update,
+} from '../../src';
 import { toFileUrl } from '../../src/utils';
 
 process.env.BOT_API_TOKEN ??= '1111:fake_token';
@@ -64,3 +71,13 @@ export const inlineQuery: InlineQuery = {
   query: 'foo',
 } as InlineQuery;
 export const inlineUpdate: Update = { update_id: 1, inline_query: inlineQuery };
+
+export const callbackQuery: CallbackQuery = {
+  id: queryId,
+  data: 'bar',
+  message: { chat: { id: chat_id } },
+} as CallbackQuery;
+export const callbackUpdate: Update = {
+  update_id: 1,
+  callback_query: callbackQuery,
+};

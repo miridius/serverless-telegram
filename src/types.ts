@@ -12,7 +12,9 @@ import type {
 } from 'aws-lambda';
 import { AppendOptions } from 'form-data';
 import type {
+  AnswerCallbackQueryOptions,
   AnswerInlineQueryOptions,
+  CallbackQuery,
   Chat,
   ChatAction,
   InlineQuery,
@@ -42,32 +44,66 @@ import type {
   Update,
   User,
 } from 'node-telegram-bot-api';
-import type { Env, InlineEnv, MessageEnv } from './telegram/env';
+import type { CallbackEnv, Env, InlineEnv, MessageEnv } from './telegram/env';
 
 export type {
-  Chat,
-  Env,
-  InlineEnv,
-  InlineQuery,
-  InlineQueryResult,
-  Message,
-  MessageEnv,
-  Update,
-  User,
+  AnswerCallbackQueryOptions,
+  AnswerInlineQueryOptions,
+  APIGatewayEvent,
+  APIGatewayProxyEventV2,
+  APIGatewayProxyResult,
+  APIGatewayProxyStructuredResultV2,
+  AppendOptions,
   AwsContext,
   AzureContext,
   AzureHttpRequest,
   AzureLogger,
+  CallbackQuery,
+  Chat,
+  ChatAction,
+  Env,
+  InlineQuery,
+  InlineQueryResult,
+  InlineQueryResultArticle,
+  InlineQueryResultAudio,
+  InlineQueryResultCachedAudio,
+  InlineQueryResultCachedDocument,
+  InlineQueryResultCachedGif,
+  InlineQueryResultCachedMpeg4Gif,
+  InlineQueryResultCachedPhoto,
+  InlineQueryResultCachedSticker,
+  InlineQueryResultCachedVideo,
+  InlineQueryResultCachedVoice,
+  InlineQueryResultContact,
+  InlineQueryResultDocument,
+  InlineQueryResultGame,
+  InlineQueryResultGif,
+  InlineQueryResultLocation,
+  InlineQueryResultMpeg4Gif,
+  InlineQueryResultPhoto,
+  InlineQueryResultVenue,
+  InlineQueryResultVideo,
+  InlineQueryResultVoice,
+  InputMedia,
+  Message,
+  Update,
+  User,
 };
 
 export type Handler<Req, Env, Res> = (req: Req, env: Env) => Promise<Res> | Res;
 
 export type MessageHandler = Handler<Message, MessageEnv, MessageResponse>;
 export type InlineHandler = Handler<InlineQuery, InlineEnv, InlineResponse>;
+export type CallbackHandler = Handler<
+  CallbackQuery,
+  CallbackEnv,
+  CallbackResponse
+>;
 
 export interface HandlerMap {
   message?: MessageHandler;
   inline?: InlineHandler;
+  callback?: CallbackHandler;
 }
 
 export type MessageResponse =
@@ -183,9 +219,24 @@ export interface AnswerInlineQueryMethod extends AnswerInlineQueryOptions {
   results: InlineQueryResult[];
 }
 
+export type CallbackResponse =
+  | string // text only
+  | AnswerCallbackQuery
+  | NoResponse;
+
+export type AnswerCallbackQuery = Omit<
+  AnswerCallbackQueryOptions,
+  'callback_query_id'
+>;
+
+export interface AnswerCallbackQueryMethod extends AnswerCallbackQueryOptions {
+  method: 'answerCallbackQuery';
+}
+
 export type UpdateResponse =
   | ResponseMethod
   | AnswerInlineQueryMethod
+  | AnswerCallbackQueryMethod
   | NoResponse;
 
 export type TgApiRequest =
@@ -264,17 +315,32 @@ export interface AzureHttpResponse {
   headers?: Record<string, string>;
 }
 
+export type AzureHttpFunction = (
+  ctx: AzureContext,
+  req: AzureHttpRequest,
+) => Promise<AzureHttpResponse | undefined> | AzureHttpResponse | undefined;
+
 export type AwsHttpRequest = APIGatewayEvent | APIGatewayProxyEventV2;
 export type AwsHttpResponse =
   | APIGatewayProxyResult
   | APIGatewayProxyStructuredResultV2;
 
-export type AzureHttpFunction = (
-  ctx: AzureContext,
-  req: AzureHttpRequest,
-) => Promise<AzureHttpResponse | undefined>;
-
 export type AwsHttpFunction = (
   event: AwsHttpRequest,
   ctx: AwsContext,
 ) => Promise<AwsHttpResponse>;
+
+// export type AwsHttpFunction = APIGatewayProxyHandler | APIGatewayProxyHandlerV2;
+
+export type Fn = (...args: any[]) => any;
+export type Awaited<T> = T extends PromiseLike<infer U> ? Awaited<U> : T;
+
+export interface Adapter<F extends Fn, C extends Context = Context> {
+  encodeArgs(body: Update | NoResponse, ctx: C): Parameters<F>;
+  decodeArgs(...args: Parameters<F>): [body: Update | NoResponse, ctx: C];
+  encodeResponse(
+    updateResponse: UpdateResponse,
+    ctx: C,
+  ): Awaited<ReturnType<F>>;
+  decodeResponse(res: Awaited<ReturnType<F>>): UpdateResponse;
+}

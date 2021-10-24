@@ -14,6 +14,7 @@ export const defaultWebhookOpts: Partial<SetWebHookOptions> = {
     'channel_post',
     'edited_channel_post',
     'inline_query',
+    'callback_query',
   ],
 };
 

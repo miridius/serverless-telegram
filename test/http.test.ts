@@ -1,5 +1,4 @@
-import type { AzureHttpRequest, AzureHttpResponse } from '../src';
-import { wrapAws, wrapAzure } from '../src';
+import { awsAdapter, azureAdapter, AzureHttpRequest, wrapHttp } from '../src';
 import { awsCtx, azureCtx } from './helpers';
 
 const jsonObj = {
@@ -52,8 +51,8 @@ const emptyRequest: AzureHttpRequest = {
   rawBody: undefined,
 };
 
-describe('wrapAzure', () => {
-  const echo = wrapAzure(async (x: any) => x);
+describe('wrapHttp with azureAdapter', () => {
+  const echo = wrapHttp(async (x: any) => x, azureAdapter);
 
   it('handles JSON objects', () => {
     return expect(echo(azureCtx, jsonRequest)).resolves.toEqual({
@@ -62,21 +61,8 @@ describe('wrapAzure', () => {
     });
   });
 
-  it('works with plain strings', () => {
-    return expect(echo(azureCtx, stringRequest)).resolves.toEqual({
-      body: 'text body',
-    });
-  });
-
   it('ignores empty body', () => {
     return expect(echo(azureCtx, emptyRequest)).resolves.toBeUndefined();
-  });
-
-  it('passes through user defined HTTP responses', () => {
-    let res: AzureHttpResponse = { status: 204, headers: { bar: 'baz' } };
-    // deep copy in case the response object is modified
-    const returnsRes = wrapAzure(async () => JSON.parse(JSON.stringify(res)));
-    return expect(returnsRes(azureCtx, jsonRequest)).resolves.toEqual(res);
   });
 
   it('sets ctx.res as well as the return value', async () => {
@@ -85,8 +71,8 @@ describe('wrapAzure', () => {
   });
 });
 
-describe('wrapAws', () => {
-  const echo = wrapAws(async (x: any) => x);
+describe('wrapHttp with awsAdapter', () => {
+  const echo = wrapHttp(async (x: any) => x, awsAdapter);
 
   it('parses JSON input and stringifies JSON output', () => {
     let body = JSON.stringify(jsonObj);

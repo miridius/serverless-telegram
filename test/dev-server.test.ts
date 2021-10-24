@@ -1,10 +1,11 @@
 import { resolve } from 'path';
 import createAzureTelegramWebhook, {
+  AzureLogger,
   DevServer,
   startDevServer,
   Update,
 } from '../src';
-import { calculateNewOffset, loadWebhooks } from '../src/dev-server';
+import { loadWebhooks } from '../src/dev-server';
 import { withNockback } from './helpers';
 
 process.env.BOT_API_TOKEN ??= '1111:fake_token';
@@ -38,6 +39,15 @@ describe('dev server', () => {
     });
   });
 
+  it('ignores empty responses', async () => {
+    const srv = new DevServer({
+      type: 'azure',
+      handler: () => undefined,
+      path: '',
+    });
+    (srv as any).handleUpdate();
+  });
+
   it('loads all function scripts in an Azure project (if any)', () => {
     expect(loadWebhooks()).toEqual([]);
     const projRoot = __dirname + '/__test-project-azure__';
@@ -63,9 +73,10 @@ describe('dev server', () => {
   });
 
   it('calculates offset', () => {
-    expect.assertions(8);
-    expect(calculateNewOffset()).toBeUndefined();
-    expect(calculateNewOffset(0)).toBe(0);
+    expect.assertions(7);
+    const srv = new DevServer({} as any);
+    (srv as any).updateOffset();
+    expect(srv.offset).toBeUndefined();
     for (const [offset, update_id, newOffset] of [
       [undefined, undefined, undefined],
       [undefined, -1, 0],
@@ -74,9 +85,9 @@ describe('dev server', () => {
       [100, undefined, 100],
       [100, 50, 100],
     ]) {
-      expect(calculateNewOffset(offset, { update_id } as Update)).toBe(
-        newOffset,
-      );
+      srv.offset = offset;
+      (srv as any).updateOffset({ update_id } as Update);
+      expect(srv.offset).toEqual(newOffset);
     }
   });
 
@@ -88,5 +99,21 @@ describe('dev server', () => {
         path: 'fake path',
       }),
     ).toHaveProperty('timeout', 55);
+  });
+
+  it('catches and logs errors', async () => {
+    const error = jest.fn();
+    const srv = new DevServer(
+      {
+        type: 'azure',
+        handler: () => {
+          throw new Error('foo');
+        },
+        path: '',
+      },
+      { error } as unknown as AzureLogger,
+    );
+    await (srv as any).handleUpdate();
+    expect(error).toHaveBeenCalledWith(new Error('foo'));
   });
 });

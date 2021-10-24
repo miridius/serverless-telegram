@@ -10,7 +10,8 @@
         "edited_message",
         "channel_post",
         "edited_channel_post",
-        "inline_query"
+        "inline_query",
+        "callback_query"
       ]
     },
     "status": 200,

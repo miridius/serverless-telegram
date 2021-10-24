@@ -1,15 +1,11 @@
 import fs from 'fs';
-import {
-  InlineQuery,
-  MessageHandler,
-  MessageResponse,
-  ResponseObject,
-  Update,
-} from '../../src';
+import { MessageHandler, MessageResponse, ResponseObject } from '../../src';
 import wrapTelegram from '../../src/telegram/wrap-telegram';
 import { azureCtx, withNockback } from '../helpers';
 import {
+  callbackUpdate,
   docPath,
+  inlineUpdate,
   responseMethod,
   sendDocument,
   sticker,
@@ -34,27 +30,35 @@ describe('update handling', () => {
     const handler = wrapTelegram({
       message: ({ text }) => text,
       inline: async ({ query }) => [{ photo_url: query, thumb_url: query }],
+      callback: ({ data }) => data,
     });
-    const inlineUpdate: Update = {
-      update_id: 2,
-      inline_query: {
-        id: 'abc',
-        query: 'query text',
-      } as InlineQuery,
-    };
+    // const inlineUpdate: Update = {
+    //   update_id: 2,
+    //   inline_query: {
+    //     id: 'abc',
+    //     query: 'query text',
+    //   } as InlineQuery,
+    // };
     expect(await handler(update, azureCtx)).toEqual(responseMethod);
     expect(await handler(inlineUpdate, azureCtx)).toMatchInlineSnapshot(`
       Object {
-        "inline_query_id": "abc",
+        "inline_query_id": "q",
         "method": "answerInlineQuery",
         "results": Array [
           Object {
             "id": "0",
-            "photo_url": "query text",
-            "thumb_url": "query text",
+            "photo_url": "foo",
+            "thumb_url": "foo",
             "type": "photo",
           },
         ],
+      }
+    `);
+    expect(await handler(callbackUpdate, azureCtx)).toMatchInlineSnapshot(`
+      Object {
+        "callback_query_id": "q",
+        "method": "answerCallbackQuery",
+        "text": "bar",
       }
     `);
   });
@@ -136,5 +140,25 @@ describe('message response parsing', () => {
   });
   it('sends no response', () => {
     return expect(testResponse(undefined)).resolves.toBeUndefined();
+  });
+  it('sends an empty answerCallbackQuery on NoResponse', () => {
+    const handler = wrapTelegram({ callback: () => {} });
+    return expect(handler(callbackUpdate, azureCtx)).resolves
+      .toMatchInlineSnapshot(`
+              Object {
+                "callback_query_id": "q",
+                "method": "answerCallbackQuery",
+              }
+            `);
+  });
+  it('forces callback handler to return a callback query response', async () => {
+    const handler = wrapTelegram({
+      callback: ({ data }) => ({ sticker: data } as any),
+    });
+    await expect(() =>
+      handler(callbackUpdate, azureCtx),
+    ).rejects.toThrowErrorMatchingInlineSnapshot(
+      `"callback handler must return a callback response, not {\\"sticker\\":\\"bar\\"}"`,
+    );
   });
 });

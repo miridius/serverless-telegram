@@ -1,4 +1,7 @@
+import { NoResponse, TgApiRequest } from '..';
 import type {
+  CallbackQuery,
+  CallbackResponse,
   Context,
   InlineQuery,
   InlineResponse,
@@ -9,6 +12,7 @@ import type {
 } from '../types';
 import {
   callTgApi,
+  toAnswerCallbackMethod,
   toAnswerInlineMethod,
   toResponseMethod,
 } from './telegram-api';
@@ -45,13 +49,17 @@ export class Env<R> {
    * @returns a promise resolving to the API call result (if any)
    */
   async send(res: R): Promise<any> {
-    const req = this.toUpdateRes(res);
+    const req = this.toApiRequest(res);
     if (req) {
       this.debug('calling telegram API:', req);
       const apiRes = await callTgApi(req);
-      this.debug('API result:', apiRes);
+      this.debug(req.method, 'API result:', apiRes);
       return apiRes;
     }
+  }
+
+  toApiRequest(res: R): TgApiRequest | NoResponse {
+    return this.toUpdateRes(res);
   }
 
   toUpdateRes(_res: R): UpdateResponse {
@@ -60,27 +68,47 @@ export class Env<R> {
 }
 
 export class MessageEnv extends Env<MessageResponse> {
-  readonly message: Message;
+  readonly chatId: number;
 
-  constructor(context: Context, message: Message) {
+  constructor(context: Context, public readonly message: Message) {
     super(context);
-    this.message = message;
+    this.chatId = message.chat.id;
   }
 
   toUpdateRes(res: MessageResponse) {
-    return toResponseMethod(res, this.message.chat.id);
+    return toResponseMethod(res, this.chatId);
   }
 }
 
 export class InlineEnv extends Env<InlineResponse> {
-  readonly inlineQuery: InlineQuery;
-
-  constructor(context: Context, inlineQuery: InlineQuery) {
+  constructor(context: Context, public readonly inlineQuery: InlineQuery) {
     super(context);
-    this.inlineQuery = inlineQuery;
   }
 
   toUpdateRes(res: InlineResponse) {
     return toAnswerInlineMethod(res, this.inlineQuery.id);
+  }
+}
+
+export class CallbackEnv extends Env<CallbackResponse | MessageResponse> {
+  readonly chatId?: number;
+
+  constructor(context: Context, public readonly callbackQuery: CallbackQuery) {
+    super(context);
+    this.chatId = callbackQuery.message?.chat.id;
+  }
+
+  /** env.send is handled differently to the bot's return value */
+  toApiRequest(res: MessageResponse): UpdateResponse {
+    if (!this.chatId) {
+      throw new Error(
+        'Env.send cannot be used because there is no chat id in the callback query',
+      );
+    }
+    return toResponseMethod(res, this.chatId);
+  }
+
+  toUpdateRes(res: CallbackResponse) {
+    return toAnswerCallbackMethod(res, this.callbackQuery.id);
   }
 }

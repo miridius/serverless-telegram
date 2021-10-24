@@ -1,6 +1,7 @@
 import FormData from 'form-data';
 import { createReadStream } from 'fs';
 import fetch, { RequestInit } from 'node-fetch';
+import { AnswerCallbackQueryMethod, CallbackResponse } from '..';
 import {
   AnswerInlineQuery,
   InlineQueryResult,
@@ -18,6 +19,11 @@ import {
 } from '../types';
 import { isFileBuffer, isFileUrl, isObject, toFileUrl } from '../utils';
 
+export const isNoResponse = (res: unknown): res is NoResponse => !res;
+
+const expandStringRes = <T>(res: string | T): T | { text: string } =>
+  typeof res === 'string' ? { text: res } : res;
+
 const getMethod = (res: ResponseObject): ResponseMethod['method'] | undefined =>
   Object.keys(res)
     .map((key) => METHOD_MAPPING[key])
@@ -28,9 +34,9 @@ export const toResponseMethod = (
   chat_id: number,
 ): ResponseMethod | undefined => {
   // check for NoResponse
-  if (!res) return undefined;
+  if (isNoResponse(res)) return undefined;
   // convert string to object
-  const resObj = typeof res === 'string' ? { text: res } : res;
+  const resObj = expandStringRes(res);
   // determine the telegram api method from content (if not specified)
   const method = (resObj as ResponseMethod).method || getMethod(resObj);
   if (!method) {
@@ -42,10 +48,8 @@ export const toResponseMethod = (
 const isAnswerInlineQuery = (res: unknown): res is AnswerInlineQuery =>
   isObject(res) && Array.isArray((res as AnswerInlineQuery).results);
 
-const isPassthroughResponse = (
-  res: InlineResponse,
-): res is ResponseMethod | NoResponse =>
-  !res || ('method' in res && 'chat_id' in res);
+const isResponseMethod = (res: unknown): res is ResponseMethod =>
+  typeof res === 'object' && res != null && 'method' in res && 'chat_id' in res;
 
 // special cases where there's no unique mandatory parameter
 const resultTypeExceptions = (
@@ -78,7 +82,7 @@ export const toAnswerInlineMethod = (
   res: InlineResponse,
   inline_query_id: string,
 ): UpdateResponse => {
-  if (isPassthroughResponse(res)) return res;
+  if (isNoResponse(res) || isResponseMethod(res)) return res;
   if (Array.isArray(res)) res = { results: res };
   if (!isAnswerInlineQuery(res)) {
     throw new Error(
@@ -91,6 +95,27 @@ export const toAnswerInlineMethod = (
     ...res,
     results: res.results.map(toInlineQueryResult),
   };
+};
+
+const allowedCbResKeys = new Set(['text', 'show_alert', 'url', 'cache_time']);
+const isCallbackResponse = (res: any): res is CallbackResponse =>
+  !res ||
+  typeof res === 'string' ||
+  (typeof res === 'object' &&
+    Object.keys(res).every((k) => allowedCbResKeys.has(k)));
+
+export const toAnswerCallbackMethod = (
+  res: CallbackResponse,
+  callback_query_id: string,
+): AnswerCallbackQueryMethod => {
+  if (!isCallbackResponse(res)) {
+    throw new Error(
+      'callback handler must return a callback response, not ' +
+        JSON.stringify(res),
+    );
+  }
+  const options = isNoResponse(res) ? {} : expandStringRes(res);
+  return { ...options, method: 'answerCallbackQuery', callback_query_id };
 };
 
 const getUrl = (method: string) => {
