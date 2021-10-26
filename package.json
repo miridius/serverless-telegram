@@ -45,9 +45,9 @@
     "size-install": "npm i -g pnpm && pnpm i",
     "size": "size-limit",
     "analyze": "size-limit --why",
-    "check": "pnpm outdated --compatible && pnpm audit && pnpm lint && pnpm test && pnpm build && pnpm size",
+    "check": "pnpm install && pnpm outdated --compatible && pnpm audit && pnpm lint && pnpm test && pnpm size",
     "update-deps": "pnpm-update-bisect && pnpm check",
-    "release": "pnpm check && pnpm np"
+    "release": "pnpm check && pnpm np --no-cleanup"
   },
   "dependencies": {
     "@azure/functions": "^1.2.3",
