@@ -47,7 +47,7 @@
     "analyze": "size-limit --why",
     "check": "pnpm outdated --compatible && pnpm audit && pnpm lint && pnpm test && pnpm build && pnpm size",
     "update-deps": "pnpm-update-bisect && pnpm check",
-    "release": "pnpm check && npx np"
+    "release": "pnpm check && pnpm np"
   },
   "dependencies": {
     "@azure/functions": "^1.2.3",
@@ -68,6 +68,7 @@
     "husky": "^7.0.4",
     "jest": "^27.3.1",
     "nock": "^13.1.4",
+    "np": "^7.5.0",
     "pnpm-update-bisect": "^0.1.1",
     "prettier": "^2.4.1",
     "size-limit": "^6.0.3",
