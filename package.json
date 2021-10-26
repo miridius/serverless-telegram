@@ -94,17 +94,13 @@
   "size-limit": [
     {
       "path": "dist/serverless-telegram.cjs.production.min.js",
-      "limit": "25 KB",
-      "ignore": [
-        "fs"
-      ]
+      "limit": "15 KB",
+      "webpack": false
     },
     {
       "path": "dist/serverless-telegram.esm.js",
       "limit": "25 KB",
-      "ignore": [
-        "fs"
-      ]
+      "webpack": false
     }
   ]
 }
