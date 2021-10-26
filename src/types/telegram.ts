@@ -1,18 +1,8 @@
-import type {
-  Context as AzureContext,
-  HttpRequest as AzureHttpRequest,
-  Logger as AzureLogger,
-} from '@azure/functions';
-import type {
-  APIGatewayEvent,
-  APIGatewayProxyEventV2,
-  APIGatewayProxyResult,
-  APIGatewayProxyStructuredResultV2,
-  Context as AwsContext,
-} from 'aws-lambda';
 import { AppendOptions } from 'form-data';
 import type {
+  AnswerCallbackQueryOptions,
   AnswerInlineQueryOptions,
+  CallbackQuery,
   Chat,
   ChatAction,
   InlineQuery,
@@ -42,32 +32,58 @@ import type {
   Update,
   User,
 } from 'node-telegram-bot-api';
-import type { Env, InlineEnv, MessageEnv } from './telegram/env';
+import type { CallbackEnv, Env, InlineEnv, MessageEnv } from '../telegram/env';
 
 export type {
+  AnswerCallbackQueryOptions,
+  AnswerInlineQueryOptions,
+  AppendOptions,
+  CallbackQuery,
   Chat,
+  ChatAction,
   Env,
-  InlineEnv,
   InlineQuery,
   InlineQueryResult,
+  InlineQueryResultArticle,
+  InlineQueryResultAudio,
+  InlineQueryResultCachedAudio,
+  InlineQueryResultCachedDocument,
+  InlineQueryResultCachedGif,
+  InlineQueryResultCachedMpeg4Gif,
+  InlineQueryResultCachedPhoto,
+  InlineQueryResultCachedSticker,
+  InlineQueryResultCachedVideo,
+  InlineQueryResultCachedVoice,
+  InlineQueryResultContact,
+  InlineQueryResultDocument,
+  InlineQueryResultGame,
+  InlineQueryResultGif,
+  InlineQueryResultLocation,
+  InlineQueryResultMpeg4Gif,
+  InlineQueryResultPhoto,
+  InlineQueryResultVenue,
+  InlineQueryResultVideo,
+  InlineQueryResultVoice,
+  InputMedia,
   Message,
-  MessageEnv,
   Update,
   User,
-  AwsContext,
-  AzureContext,
-  AzureHttpRequest,
-  AzureLogger,
 };
 
 export type Handler<Req, Env, Res> = (req: Req, env: Env) => Promise<Res> | Res;
 
 export type MessageHandler = Handler<Message, MessageEnv, MessageResponse>;
 export type InlineHandler = Handler<InlineQuery, InlineEnv, InlineResponse>;
+export type CallbackHandler = Handler<
+  CallbackQuery,
+  CallbackEnv,
+  CallbackResponse
+>;
 
 export interface HandlerMap {
   message?: MessageHandler;
   inline?: InlineHandler;
+  callback?: CallbackHandler;
 }
 
 export type MessageResponse =
@@ -183,9 +199,24 @@ export interface AnswerInlineQueryMethod extends AnswerInlineQueryOptions {
   results: InlineQueryResult[];
 }
 
+export type CallbackResponse =
+  | string // text only
+  | AnswerCallbackQuery
+  | NoResponse;
+
+export type AnswerCallbackQuery = Omit<
+  AnswerCallbackQueryOptions,
+  'callback_query_id'
+>;
+
+export interface AnswerCallbackQueryMethod extends AnswerCallbackQueryOptions {
+  method: 'answerCallbackQuery';
+}
+
 export type UpdateResponse =
   | ResponseMethod
   | AnswerInlineQueryMethod
+  | AnswerCallbackQueryMethod
   | NoResponse;
 
 export type TgApiRequest =
@@ -193,88 +224,9 @@ export type TgApiRequest =
   | AnswerInlineQueryMethod
   | { method: string; [param: string]: any };
 
-// utility types
-export type AllKeys<T> = T extends T ? keyof T : never;
-export type Mapping<T, K extends keyof T> = { [param in AllKeys<T>]?: T[K] };
-
-// Mappings
-export const METHOD_MAPPING: Record<
-  keyof ResponseObject,
-  ResponseMethod['method']
-> = {
-  text: 'sendMessage',
-  photo: 'sendPhoto',
-  audio: 'sendAudio',
-  document: 'sendDocument',
-  video: 'sendVideo',
-  animation: 'sendAnimation',
-  voice: 'sendVoice',
-  video_note: 'sendVideoNote',
-  media: 'sendMediaGroup',
-  address: 'sendVenue',
-  latitude: 'sendLocation',
-  phone_number: 'sendContact',
-  question: 'sendPoll',
-  emoji: 'sendDice',
-  action: 'sendChatAction',
-  sticker: 'sendSticker',
-};
-
-export const INLINE_TYPE_MAPPING: Mapping<InlineResult, 'type'> = {
-  audio_file_id: 'audio',
-  document_file_id: 'document',
-  gif_file_id: 'gif',
-  mpeg4_file_id: 'mpeg4_gif',
-  photo_file_id: 'photo',
-  sticker_file_id: 'sticker',
-  video_file_id: 'video',
-  voice_file_id: 'voice',
-  url: 'article',
-  audio_url: 'audio',
-  phone_number: 'contact',
-  game_short_name: 'game',
-  document_url: 'document',
-  gif_url: 'gif',
-  mpeg4_url: 'mpeg4_gif',
-  photo_url: 'photo',
-  address: 'venue',
-  video_url: 'video',
-  voice_url: 'voice',
-};
-
 export interface SetWebHookOptions {
   url: string;
   certificate?: InputFile;
   max_connections?: number;
   allowed_updates?: string[];
 }
-
-export type Logger = Pick<typeof console, 'debug' | 'info' | 'warn' | 'error'>;
-
-export type Context = AwsContext | AzureContext;
-
-export type BodyHandler<C extends Context = Context> = (
-  body: unknown,
-  ctx: C,
-) => UpdateResponse | Promise<UpdateResponse>;
-
-export interface AzureHttpResponse {
-  status?: number;
-  body?: any;
-  headers?: Record<string, string>;
-}
-
-export type AwsHttpRequest = APIGatewayEvent | APIGatewayProxyEventV2;
-export type AwsHttpResponse =
-  | APIGatewayProxyResult
-  | APIGatewayProxyStructuredResultV2;
-
-export type AzureHttpFunction = (
-  ctx: AzureContext,
-  req: AzureHttpRequest,
-) => Promise<AzureHttpResponse | undefined>;
-
-export type AwsHttpFunction = (
-  event: AwsHttpRequest,
-  ctx: AwsContext,
-) => Promise<AwsHttpResponse>;

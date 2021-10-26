@@ -8,7 +8,7 @@ import type {
   UpdateResponse,
 } from '../types';
 import { isObject } from '../utils';
-import { getLogger, InlineEnv, MessageEnv } from './env';
+import { CallbackEnv, getLogger, InlineEnv, MessageEnv } from './env';
 import { callTgApi, hasFileParams } from './telegram-api';
 
 export const isUpdate = (body: unknown): body is Update =>
@@ -45,6 +45,7 @@ export const toBodyHandler = (
     if (!isUpdate(update)) return;
     const msg = getMessage(update);
     const inline = update.inline_query;
+    const callback = update.callback_query;
     let res: UpdateResponse;
     if (msg && hmap.message) {
       const env = new MessageEnv(ctx, msg);
@@ -52,6 +53,9 @@ export const toBodyHandler = (
     } else if (inline && hmap.inline) {
       const env = new InlineEnv(ctx, inline);
       res = env.toUpdateRes(await hmap.inline(inline, env));
+    } else if (callback && hmap.callback) {
+      const env = new CallbackEnv(ctx, callback);
+      res = env.toUpdateRes(await hmap.callback(callback, env));
     }
     logger.debug('Bot Response:', res);
     return sendOrReturnRes(res);

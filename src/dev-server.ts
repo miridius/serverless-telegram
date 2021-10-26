@@ -1,9 +1,16 @@
 import { existsSync, readdirSync, readFileSync } from 'fs';
 import { Update } from 'node-telegram-bot-api';
 import { resolve } from 'path';
+import { Adapter, Fn } from '.';
+import adapters from './http/adapters';
 import { callTgApi } from './telegram/telegram-api';
 import { defaultWebhookOpts } from './telegram/webhook-utils';
-import type { AwsHttpFunction, AzureHttpFunction, AzureLogger } from './types';
+import type {
+  AwsHttpFunction,
+  AzureContext,
+  AzureHttpFunction,
+  AzureLogger,
+} from './types';
 
 const LOG_LEVELS = ['debug', 'info', 'warn', 'error', 'silent'] as const;
 type LogLevel = typeof LOG_LEVELS[number];
@@ -15,7 +22,7 @@ const logFn = (
 ) =>
   LOG_LEVELS.indexOf(level) >= LOG_LEVELS.indexOf(minLevel)
     ? (...args: any[]) => logger(new Date(), level.toUpperCase(), ...args)
-    : (..._: any[]) => {};
+    : (..._: any[]) => undefined;
 
 const createLogger = (minLogLevel: LogLevel): AzureLogger => {
   const logger = logFn(console.log, 'info', minLogLevel) as AzureLogger;
@@ -26,12 +33,6 @@ const createLogger = (minLogLevel: LogLevel): AzureLogger => {
     error: logFn(console.error, 'error', minLogLevel),
   });
   return logger;
-};
-
-export const calculateNewOffset = (offset?: number, update?: Update) => {
-  if (!update) return offset;
-  const newOffset = Math.max(offset ?? 0, update.update_id + 1);
-  return isNaN(newOffset) ? offset : newOffset;
 };
 
 interface AzureWebhook {
@@ -48,15 +49,20 @@ interface AwsWebhook {
 
 type Webhook = AzureWebhook | AwsWebhook;
 
-export class DevServer {
+export class DevServer<T extends Webhook = Webhook> {
   running = false;
   offset?: number;
+  ctx: AzureContext;
+  adapter: Adapter<T['handler']>;
 
   constructor(
-    private webhook: Webhook,
+    private webhook: T,
     private log: AzureLogger = createLogger('debug'),
     private timeout: number = 55,
-  ) {}
+  ) {
+    this.ctx = { log } as any;
+    this.adapter = adapters[webhook.type];
+  }
 
   stop() {
     this.running = false;
@@ -87,17 +93,28 @@ export class DevServer {
   }
 
   private async handleUpdate(body: Update) {
-    this.offset = calculateNewOffset(this.offset, body);
+    this.updateOffset(body);
+    try {
+      await this.callHandler(this.adapter, this.webhook.handler, body);
+    } catch (e) {
+      this.log.error(e);
+    }
+  }
 
-    const res = await (this.webhook.type === 'azure'
-      ? this.webhook
-          .handler({ log: this.log } as any, { body } as any)
-          .then((r) => r?.body)
-      : this.webhook
-          .handler({ body: JSON.stringify(body) } as any, null as any)
-          .then((r) => r.body && JSON.parse(r.body)));
+  private async callHandler<F extends Fn>(
+    adapter: Adapter<F>,
+    handler: F,
+    body: Update,
+  ) {
+    const res = await handler(...adapter.encodeArgs(body, this.ctx));
+    const req = adapter.decodeResponse(res);
+    if (req) await callTgApi(req);
+  }
 
-    return res && callTgApi(res);
+  private updateOffset(update?: Update) {
+    if (!update) return;
+    const newOffset = Math.max(this.offset ?? 0, update.update_id + 1);
+    if (!isNaN(newOffset)) this.offset = newOffset;
   }
 }
 
@@ -127,6 +144,7 @@ const loadAzureWebhook = (path: string): Webhook => ({
   type: 'azure',
   handler: require(resolve(
     path,
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     require(resolve(path, 'function.json')).scriptFile || '.',
   )),
   path,
@@ -136,6 +154,7 @@ const loadAwsWebhook = (path: string): Webhook => {
   const [file, methodName] = path.split('.');
   return {
     type: 'aws',
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     handler: require(resolve(file))[methodName],
     path,
   };
@@ -155,7 +174,7 @@ const isAws = (projectDirOrHandlerPath: string) =>
   existsSync(resolve(projectDirOrHandlerPath, 'template.yml')) ||
   isAwsHandlerPath(projectDirOrHandlerPath);
 
-export const loadWebhooks = (projectOrFunctionDir: string = '.'): Webhook[] =>
+export const loadWebhooks = (projectOrFunctionDir = '.'): Webhook[] =>
   isAws(projectOrFunctionDir)
     ? loadAwsWebhookFunctions(projectOrFunctionDir)
     : loadAzureWebhookFunctions(projectOrFunctionDir);
