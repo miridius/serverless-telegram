@@ -95,7 +95,7 @@ describe('dev server', () => {
     expect(
       new DevServer({
         type: 'azure',
-        handler: createAzureTelegramWebhook(() => {}),
+        handler: createAzureTelegramWebhook(() => undefined),
         path: 'fake path',
       }),
     ).toHaveProperty('timeout', 55);

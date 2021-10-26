@@ -62,6 +62,7 @@ export class Env<R> {
     return this.toUpdateRes(res);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   toUpdateRes(_res: R): UpdateResponse {
     throw new Error('toUpdateRes must be implemented by subclass!');
   }

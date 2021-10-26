@@ -22,7 +22,7 @@ const logFn = (
 ) =>
   LOG_LEVELS.indexOf(level) >= LOG_LEVELS.indexOf(minLevel)
     ? (...args: any[]) => logger(new Date(), level.toUpperCase(), ...args)
-    : (..._: any[]) => {};
+    : (..._: any[]) => undefined;
 
 const createLogger = (minLogLevel: LogLevel): AzureLogger => {
   const logger = logFn(console.log, 'info', minLogLevel) as AzureLogger;
@@ -144,6 +144,7 @@ const loadAzureWebhook = (path: string): Webhook => ({
   type: 'azure',
   handler: require(resolve(
     path,
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     require(resolve(path, 'function.json')).scriptFile || '.',
   )),
   path,
@@ -153,6 +154,7 @@ const loadAwsWebhook = (path: string): Webhook => {
   const [file, methodName] = path.split('.');
   return {
     type: 'aws',
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     handler: require(resolve(file))[methodName],
     path,
   };
@@ -172,7 +174,7 @@ const isAws = (projectDirOrHandlerPath: string) =>
   existsSync(resolve(projectDirOrHandlerPath, 'template.yml')) ||
   isAwsHandlerPath(projectDirOrHandlerPath);
 
-export const loadWebhooks = (projectOrFunctionDir: string = '.'): Webhook[] =>
+export const loadWebhooks = (projectOrFunctionDir = '.'): Webhook[] =>
   isAws(projectOrFunctionDir)
     ? loadAwsWebhookFunctions(projectOrFunctionDir)
     : loadAzureWebhookFunctions(projectOrFunctionDir);

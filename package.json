@@ -40,7 +40,7 @@
     "test": "tsdx test --ci --no-cache",
     "test:watch": "tsdx test --watchAll --no-cache",
     "test:env": "env-cmd tsdx test",
-    "lint": "tsdx lint src test",
+    "lint": "eslint src test",
     "prepare": "husky install && tsdx build",
     "size": "size-limit",
     "analyze": "size-limit --why",

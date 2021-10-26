@@ -142,7 +142,7 @@ describe('message response parsing', () => {
     return expect(testResponse(undefined)).resolves.toBeUndefined();
   });
   it('sends an empty answerCallbackQuery on NoResponse', () => {
-    const handler = wrapTelegram({ callback: () => {} });
+    const handler = wrapTelegram({ callback: () => false });
     return expect(handler(callbackUpdate, azureCtx)).resolves
       .toMatchInlineSnapshot(`
               Object {

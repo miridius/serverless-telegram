@@ -75,7 +75,7 @@ describe('wrapHttp with awsAdapter', () => {
   const echo = wrapHttp(async (x: any) => x, awsAdapter);
 
   it('parses JSON input and stringifies JSON output', () => {
-    let body = JSON.stringify(jsonObj);
+    const body = JSON.stringify(jsonObj);
     return expect(echo({ body } as any, awsCtx)).resolves.toEqual({
       statusCode: 200,
       headers: {
