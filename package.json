@@ -82,7 +82,8 @@
       "jest": "^27",
       "prettier": "^2",
       "ts-jest": "^27",
-      "typescript": "^4"
+      "typescript": "^4",
+      "ansi-regex@>2.1.1 <5.0.1": ">=5.0.1"
     }
   },
   "prettier": {
