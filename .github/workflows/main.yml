@@ -22,8 +22,14 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
 
-      - name: Install and audit dependencies
-        run: pnpm install --frozen-lockfile --audit
+      - name: Install pnpm
+        run: npm i -g pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Audit
+        run: pnpm audit
 
       - name: Lint
         run: pnpm lint
