@@ -173,7 +173,8 @@ const getOpts = (params: Record<string, any>, useForm?: boolean) => {
 /**
  * Call the Telegram Bot API asynchronously. For most cases it is simpler
  * to use Env.send() as that will automatically set the method and chat_id.
- * @param req Object containing a `method` key which names the telegram API
+ * @param req Object containing a `method` key which names the telegram API.
+ * Pass an array of requests to send each one individually.
  * {@link https://core.telegram.org/bots/api#available-methods|method},
  * along with any other parameters. To upload a file, pass a `fs.ReadStream`
  * (using `fs.createReadStream(path)`) as the parameter value.
@@ -181,8 +182,14 @@ const getOpts = (params: Record<string, any>, useForm?: boolean) => {
  * automatically decided depending on whether any params are `ReadStream`s.
  * @returns a promise resolving to the API call result (if any)
  */
-export const callTgApi = async (req: TgApiRequest, useForm?: boolean) => {
+export const callTgApi = async (
+  req: TgApiRequest | TgApiRequest[],
+  useForm?: boolean,
+): Promise<any> => {
   if (!req) return;
+  if (Array.isArray(req)) {
+    return Promise.all(req.map((r) => callTgApi(r, useForm)));
+  }
   const { method, ...params } = req;
   if (!method) throw new Error(`No method in request: ${JSON.stringify(req)}`);
   const res = await fetch(getUrl(method), getOpts(params, useForm));

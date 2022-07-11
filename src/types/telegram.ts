@@ -220,9 +220,8 @@ export type UpdateResponse =
   | NoResponse;
 
 export type TgApiRequest =
-  | ResponseMethod
-  | AnswerInlineQueryMethod
-  | { method: string; [param: string]: any };
+  | { method: string; [param: string]: any }
+  | NoResponse;
 
 export interface SetWebHookOptions {
   url: string;

@@ -24,7 +24,13 @@ export const getMessage = (update: Partial<Update>): Message | undefined =>
  * Checks if the given update response can be simply returned (no file uploads)
  * If so, returns it. Otherwise sends it via the API and returns undefined
  */
-export const sendOrReturnRes = async (res: UpdateResponse) => {
+export const sendOrReturnRes = async (
+  res: UpdateResponse | UpdateResponse[],
+) => {
+  if (Array.isArray(res)) {
+    await Promise.all(res.map((r) => callTgApi(r)));
+    return undefined;
+  }
   // return res && hasFileParams(res) ? await callTgApi(res, true) && undefined : res;
   // check for file stream parameters
   if (res && hasFileParams(res)) {

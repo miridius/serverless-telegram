@@ -17,13 +17,13 @@ import {
   toResponseMethod,
 } from './telegram-api';
 
-export const getLogger = (ctx: Context): Logger =>
+export const getLogger = (ctx?: Context): Logger =>
   ctx && typeof ctx === 'object' && 'log' in ctx
     ? { debug: ctx.log.verbose, ...ctx.log }
     : console;
 
 export class Env<R> {
-  readonly context: Context;
+  readonly context?: Context;
   readonly debug: Logger['debug'];
   readonly info: Logger['info'];
   readonly warn: Logger['warn'];
@@ -32,7 +32,7 @@ export class Env<R> {
   // let the user add additional properties if they want
   // [k: string]: any;
 
-  constructor(context: Context) {
+  constructor(context?: Context) {
     this.context = context;
     const { debug, info, warn, error } = getLogger(context);
     this.debug = debug;

@@ -18,3 +18,6 @@ export const toFileUrl = (filePath: string | URL) => {
   if (!filePath.startsWith('file:/')) filePath = `file://${resolve(filePath)}`;
   return new URL(filePath);
 };
+
+export const mapIfArray = <T, R>(xOrXs: T | T[], fn: (x: T) => R): R | R[] =>
+  Array.isArray(xOrXs) ? xOrXs.map(fn) : fn(xOrXs);

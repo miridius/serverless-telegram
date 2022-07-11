@@ -10,8 +10,7 @@ import type {
 
 // re-exports
 export * from './dev-server';
-export * from './telegram/env';
-export * from './telegram/webhook-utils';
+export * from './telegram';
 export * from './types';
 export * as utils from './utils';
 export { wrapTelegram, wrapHttp, awsAdapter, azureAdapter };
