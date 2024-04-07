@@ -14,8 +14,6 @@ The most support is provided for AWS Lambda and Azure Function Apps but other pl
 
 # Table of Contents
 
-- [serverless-telegram](#serverless-telegram)
-- [Table of Contents](#table-of-contents)
 - [Getting Started](#getting-started)
   - [On AWS](#on-aws)
   - [On Azure](#on-azure)
@@ -132,7 +130,7 @@ You will need two things:
 You can set these up any number of ways, such as manually through the AWS console or using the AWS CLI, but one of the easier options is to use AWS SAM to create a project and deploy it to AWS. You will need the [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html) and to [configure your credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html#cli-configure-quickstart-config), as well as the [SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html) v1.31 or newer. Then you can run the below to create a new app with some example rest API handlers:
 
 ```bash
-sam init --runtime nodejs14.x --app-template quick-start-web
+sam init --runtime nodejs20.x --app-template quick-start-web
 ```
 
 Then in the newly created project you will need to add serverless-telegram as a runtime dependency
@@ -595,8 +593,8 @@ A few things are happening here:
 
 Prerequisites:
 
-- NodeJS v14 (to support Azure/AWS functions)
-- Pnpm (to support package resolutions overrides)
+- A version of [NodeJS](https://nodejs.org/en) supported by your chosen cloud provider ([see here](https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html) for AWS)
+- [Pnpm](https://pnpm.io/) (to support package resolutions overrides)
 
 Clone the repo and then run `pnpm install`
 
