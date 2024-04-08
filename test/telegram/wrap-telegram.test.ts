@@ -41,11 +41,11 @@ describe('update handling', () => {
     // };
     expect(await handler(update, azureCtx)).toEqual(responseMethod);
     expect(await handler(inlineUpdate, azureCtx)).toMatchInlineSnapshot(`
-      Object {
+      {
         "inline_query_id": "q",
         "method": "answerInlineQuery",
-        "results": Array [
-          Object {
+        "results": [
+          {
             "id": "0",
             "photo_url": "foo",
             "thumb_url": "foo",
@@ -55,7 +55,7 @@ describe('update handling', () => {
       }
     `);
     expect(await handler(callbackUpdate, azureCtx)).toMatchInlineSnapshot(`
-      Object {
+      {
         "callback_query_id": "q",
         "method": "answerCallbackQuery",
         "text": "bar",
@@ -135,7 +135,7 @@ describe('message response parsing', () => {
     return expect(() =>
       testResponse({ x: 1 } as ResponseObject),
     ).rejects.toThrowErrorMatchingInlineSnapshot(
-      `"Not a valid message response: {\\"x\\":1}"`,
+      `"Not a valid message response: {"x":1}"`,
     );
   });
   it('sends no response', () => {
@@ -145,7 +145,7 @@ describe('message response parsing', () => {
     const handler = wrapTelegram({ callback: () => false });
     return expect(handler(callbackUpdate, azureCtx)).resolves
       .toMatchInlineSnapshot(`
-              Object {
+              {
                 "callback_query_id": "q",
                 "method": "answerCallbackQuery",
               }
@@ -158,7 +158,7 @@ describe('message response parsing', () => {
     await expect(() =>
       handler(callbackUpdate, azureCtx),
     ).rejects.toThrowErrorMatchingInlineSnapshot(
-      `"callback handler must return a callback response, not {\\"sticker\\":\\"bar\\"}"`,
+      `"callback handler must return a callback response, not {"sticker":"bar"}"`,
     );
   });
 });

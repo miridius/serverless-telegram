@@ -1,32 +1,32 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`toAnswerInlineMethod works with results array 1`] = `
-Object {
+{
   "inline_query_id": "q",
   "method": "answerInlineQuery",
-  "results": Array [
-    Object {
+  "results": [
+    {
       "audio_url": "foo://bar",
       "id": "audio-id",
       "title": "baz",
       "type": "audio",
     },
-    Object {
+    {
       "id": "1",
       "photo_url": "photo URL",
       "thumb_url": "thumb URL",
       "type": "photo",
     },
-    Object {
+    {
       "id": "2",
       "latitude": 123,
       "longitude": 456,
       "title": "home",
       "type": "location",
     },
-    Object {
+    {
       "id": "3",
-      "input_message_content": Object {},
+      "input_message_content": {},
       "title": "article title",
       "type": "article",
     },

@@ -87,7 +87,7 @@ describe('callTgApi', () => {
     return expect(() =>
       callTgApi({ foo: 1 } as unknown as TgApiRequest),
     ).rejects.toThrowErrorMatchingInlineSnapshot(
-      `"No method in request: {\\"foo\\":1}"`,
+      `"No method in request: {"foo":1}"`,
     );
   });
 });

@@ -13,8 +13,8 @@ describe('setWebhook', () => {
           allowed_updates: ['message', 'edited_message'],
         }),
       ).resolves.toMatchInlineSnapshot(`
-                Object {
-                  "allowed_updates": Array [
+                {
+                  "allowed_updates": [
                     "message",
                     "edited_message",
                   ],
@@ -55,8 +55,8 @@ describe('deleteWebhook', () => {
   it('works', () => {
     return withNockback('deleteWebhook.json', () => {
       return expect(deleteWebhook()).resolves.toMatchInlineSnapshot(`
-                Object {
-                  "allowed_updates": Array [
+                {
+                  "allowed_updates": [
                     "message",
                     "edited_message",
                   ],
