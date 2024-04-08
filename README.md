@@ -138,23 +138,27 @@ Then in the newly created project you will need to add serverless-telegram as a 
 ```bash
 # or pnpm, or yarn, or ...
 npm i
-npm i serverless-telegram
+npm i serverless-telegram form-data
 ```
 
-To create a telegram webhook handler, create a file `src/handlers/webhook.js` with the following content:
+> [!NOTE]  
+> It's not clear why `form-data` doesn't get bundled with `serverless-telegram` even though it's a dependency. Maybe it's getting removed as part of the build step. For now, you need to install it to your project as well.
+
+To create a telegram webhook handler, create a file `src/handlers/webhook.mjs` with the following content:
 
 ```js
-const { createAwsTelegramWebhook } = require('serverless-telegram');
+import { createAwsTelegramWebhook } from 'serverless-telegram';
 
-exports.webhook = createAwsTelegramWebhook(
+export const webhook = createAwsTelegramWebhook(
   ({ text }) => text && `You said: ${text}`,
 );
 ```
 
-If you like you can create a new file for tests at `__tests__/unit/handlers/webhook.test.js`, with the following:
+If you like you can create a new file for tests at `__tests__/unit/handlers/webhook.test.mjs`, with the following:
 
 ```js
-const { webhook } = require('../../../src/handlers/webhook.js');
+import { jest } from '@jest/globals';
+import { webhook } from '../../../src/handlers/webhook.mjs';
 
 // ignore debug output during tests
 console.debug = jest.fn();
@@ -186,7 +190,10 @@ describe('webhook', function () {
 });
 ```
 
-To deploy this new webhook to a lambda and hook it up to an API, add a `WebhookFunction` entry to the `Resources` section in `template.yml` in the project root, like so:
+> [!TIP]
+> run your tests with `npm test`/`pnpm test`/etc
+
+To deploy this new webhook to a lambda and hook it up to an API, add a `WebhookFunction` entry to the `Resources` section in `template.yaml` in the project root, like so:
 
 ```yaml
 Resources:
@@ -196,12 +203,15 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: src/handlers/webhook.webhook
-      Runtime: nodejs14.x
+      Runtime: nodejs20.x
       Description: Webhook to receive updates from the Telegram bot API
       # Increase the RAM to also increase CPU quota. 1769 MB equals 1 full vCPU
       MemorySize: 256
       # HttpApi maximum timeout is 30 sec so the lambda timeout must be < 30
       Timeout: 29
+      Environment:
+        Variables:
+          NODE_ENV: production
       Events:
         Webhook:
           Type: HttpApi # Api also works, but HttpApi is simpler & faster
@@ -224,7 +234,7 @@ Output:
 
 At this point you can remove the source code, tests, fixtures (events folder), and resources (from template.yml) for the other endpoints that came with the quick start template, and you can uninstall the aws-sdk dependency. Or you can keep them all and use them for reference as you develop.
 
-Next, deploy your new stack to AWS by running `sam deploy --guided`.
+Next, deploy your new stack to AWS by running `sam deploy --guided`. If you want to use a specific AWS creds/config profile, pass that with `--profile`
 
 - Choose a stack name matching your project name, making sure it is unique to your AWS account & region.
 - When asked if it's ok that authorization is not defined, choose Y
@@ -234,23 +244,17 @@ If everything worked ok you should see the new Webhook URL in the output section
 
 From now on whenever you want to deploy changes you can do so by running `sam deploy`.
 
-**Tip:** You can edit the new `samconfig.toml` in your project root and add your stack name as a global parameter and your the function name as a logs paramter so that you don't have to specify them:
+> [!TIP]
+> You can edit the new `samconfig.toml` in your project root and move the `region` and `profile` (if set) keys from the `[default.deploy.parameters]` section to `[default.global.parameters] so that they apply to other commands besides deploy (e.g. logs).
 
-```toml
-[default.global.parameters]
-stack_name = "<your stack name>"
-[default.logs.parameters]
-name = "WebhookFunction"
-```
-
-**Tip:** You can test your endpoint by sending a JSON POST request to it containing `{"update_id":1,"message":{"chat":{"id":1},"text":"hi"}}` . For example using curl:
+Test your endpoint by sending a JSON POST request to it containing `{"update_id":1,"message":{"chat":{"id":1},"text":"hi"}}` . For example using curl:
 
 ```bash
 curl -H "Content-Type: application/json" -d '{"update_id":1,"message":{"chat":{"id":1},"text":"hi"}}' <your-webhook-url>
 # Expected output: {"method":"sendMessage","chat_id":1,"text":"You said: hi"}%
 ```
 
-Amd you can tail your deployed function's logs by running:
+Tail your deployed function's logs by running:
 
 ```bash
 sam logs -t
