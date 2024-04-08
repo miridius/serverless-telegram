@@ -29,7 +29,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Audit
-        run: pnpm audit
+        run: pnpm audit -P
 
       - name: Lint
         run: pnpm lint

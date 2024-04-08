@@ -44,8 +44,8 @@
     "prepare": "husky install && tsdx build",
     "size": "size-limit",
     "analyze": "size-limit --why",
-    "check": "pnpm install && pnpm outdated --compatible && pnpm audit && pnpm lint && pnpm test && pnpm size",
-    "update-deps": "pnpm-update-bisect && pnpm check",
+    "check": "pnpm install-test && pnpm lint && pnpm outdated --compatible && pnpm audit -P && pnpm size",
+    "update-deps": "pnpm-update-bisect && pnpm audit --fix && pnpm check",
     "release": "pnpm check && pnpm np --no-cleanup"
   },
   "dependencies": {
@@ -53,8 +53,7 @@
     "@types/node-telegram-bot-api": "^0.64.6",
     "form-data": "^4.0.0",
     "node-fetch": "^2.7.0",
-    "regenerator-runtime": "^0.14.1",
-    "typescript-eslint": "^7.5.0"
+    "regenerator-runtime": "^0.14.1"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.84",
@@ -75,7 +74,8 @@
     "ts-jest": "^29.1.2",
     "tsdx": "^0.14.1",
     "tslib": "^2.6.2",
-    "typescript": "^5.4.4"
+    "typescript": "^5.4.4",
+    "typescript-eslint": "^7.5.0"
   },
   "pnpm": {
     "overrides": {
