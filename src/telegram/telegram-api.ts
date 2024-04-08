@@ -1,21 +1,22 @@
 import FormData from 'form-data';
-import { createReadStream } from 'fs';
-import fetch, { RequestInit } from 'node-fetch';
+import { createReadStream } from 'node:fs';
+import type { IncomingMessage } from 'node:http';
+import { request } from 'node:https';
 import { AnswerCallbackQueryMethod, CallbackResponse } from '..';
 import {
   AnswerInlineQuery,
+  INLINE_TYPE_MAPPING,
   InlineQueryResult,
   InlineResponse,
   InlineResult,
-  INLINE_TYPE_MAPPING,
-  MessageResponse,
   METHOD_MAPPING,
+  MessageResponse,
   NoResponse,
-  responseFileParams,
   ResponseMethod,
   ResponseObject,
   TgApiRequest,
   UpdateResponse,
+  responseFileParams,
 } from '../types';
 import { isFileBuffer, isFileUrl, isObject, toFileUrl } from '../utils';
 
@@ -134,8 +135,8 @@ const encodeParamVal = (k: string, v: unknown) =>
   isFilePathParam([k, v])
     ? createReadStream(toFileUrl(v as string))
     : isObject(v)
-    ? JSON.stringify(v)
-    : v;
+      ? JSON.stringify(v)
+      : v;
 
 const append = (form: FormData, k: string, v: unknown) => {
   if (isFileBuffer(v)) {
@@ -159,16 +160,41 @@ export const hasFileParams = (params: Record<string, any>) =>
     ([k, v]) => isFileBuffer(v) || isFilePathParam([k, v]),
   );
 
-const getOpts = (params: Record<string, any>, useForm?: boolean) => {
-  const opts: RequestInit = { method: 'post' };
-  if (useForm ?? hasFileParams(params)) {
-    opts.body = createForm(params);
-  } else {
-    opts.body = JSON.stringify(params);
-    opts.headers = { 'Content-Type': 'application/json' };
-  }
-  return opts;
-};
+export const postAsync = (
+  url: string,
+  params: Record<string, any>,
+  useForm?: boolean,
+): Promise<IncomingMessage> =>
+  new Promise((resolve, reject) => {
+    if (useForm || hasFileParams(params)) {
+      createForm(params).submit(url, (err, res) => resolve(res));
+    } else {
+      const body = JSON.stringify(params);
+      const opts = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(body),
+        },
+      };
+      const req = request(url, opts, resolve).on('error', reject);
+      req.write(body);
+      req.end();
+    }
+  });
+
+const toJsonAsync = (res: IncomingMessage): Promise<any> =>
+  new Promise((resolve, reject): void => {
+    let body = '';
+    res.on('data', (s) => (body += s));
+    res.on('end', () => {
+      try {
+        resolve(JSON.parse(body));
+      } catch (e) {
+        reject(new Error(`Telegram API returned bad JSON: "${body}"`));
+      }
+    });
+  });
 
 /**
  * Call the Telegram Bot API asynchronously. For most cases it is simpler
@@ -185,8 +211,8 @@ export const callTgApi = async (req: TgApiRequest, useForm?: boolean) => {
   if (!req) return;
   const { method, ...params } = req;
   if (!method) throw new Error(`No method in request: ${JSON.stringify(req)}`);
-  const res = await fetch(getUrl(method), getOpts(params, useForm));
-  const json = (await res.json()) as any;
+  const res = await postAsync(getUrl(method), params, useForm);
+  const json = await toJsonAsync(res);
   if (!json.ok) throw new Error(`Telegram API error: ${json.description}`);
   return json.result;
 };
