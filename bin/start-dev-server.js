@@ -1,2 +1,4 @@
 #! /usr/bin/env node
-require('../dist').startDevServer(...process.argv.slice(2));
+import { startDevServer } from '../dist';
+
+startDevServer(...process.argv.slice(2));

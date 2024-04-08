@@ -1,2 +1,4 @@
 #! /usr/bin/env node
-require('../dist').deleteWebhook();
+import { deleteWebhook } from '../dist';
+
+deleteWebhook();
