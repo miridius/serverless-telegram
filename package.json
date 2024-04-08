@@ -42,52 +42,48 @@
     "test:env": "env-cmd tsdx test",
     "lint": "eslint src test",
     "prepare": "husky install && tsdx build",
-    "size-install": "npm i -g pnpm && pnpm i",
     "size": "size-limit",
     "analyze": "size-limit --why",
-    "check": "pnpm install && pnpm outdated --compatible && pnpm audit && pnpm lint && pnpm test && pnpm size",
-    "update-deps": "pnpm-update-bisect && pnpm check",
+    "check": "pnpm install-test && pnpm lint && pnpm outdated --compatible && pnpm audit -P && pnpm size",
+    "update-deps": "pnpm-update-bisect && pnpm audit --fix && pnpm check",
     "release": "pnpm check && pnpm np --no-cleanup"
   },
   "dependencies": {
     "@azure/functions": "^1.2.3",
-    "@types/node-telegram-bot-api": "^0.53.1",
+    "@types/node-telegram-bot-api": "^0.64.6",
     "form-data": "^4.0.0",
-    "node-fetch": "^2.6.5",
-    "regenerator-runtime": "^0.13.9"
+    "node-fetch": "^2.7.0",
+    "regenerator-runtime": "^0.14.1"
   },
   "devDependencies": {
-    "@size-limit/preset-small-lib": "^6.0.3",
     "@types/aws-lambda": "^8.10.84",
-    "@types/jest": "^27.0.2",
+    "@types/jest": "^29.5.12",
     "@types/node": "^20.12.5",
-    "@types/node-fetch": "^2.5.12",
-    "@typescript-eslint/eslint-plugin": "^5.2.0",
-    "@typescript-eslint/parser": "^5.2.0",
+    "@types/node-fetch": "^2.6.11",
     "env-cmd": "^10.1.0",
-    "eslint": "^8.1.0",
-    "husky": "^7.0.4",
-    "jest": "^27.3.1",
-    "nock": "^13.1.4",
-    "np": "^7.5.0",
-    "pnpm-update-bisect": "^0.1.1",
-    "prettier": "^2.4.1",
-    "size-limit": "^6.0.3",
-    "ts-jest": "^27.0.7",
+    "eslint": "^9.0.0",
+    "husky": "^9.0.11",
+    "jest": "^27.5.1",
+    "nock": "^13.5.4",
+    "np": "^10.0.3",
+    "pnpm-update-bisect": "^0.3.0",
+    "prettier": "^3.2.5",
+    "size-limit": "^11.1.2",
+    "size-limit-node-esbuild": "^0.3.0",
+    "size-limit-preset-node-lib": "^0.3.0",
+    "ts-jest": "^29.1.2",
     "tsdx": "^0.14.1",
-    "tslib": "^2.3.1",
-    "typescript": "^4.4.4"
+    "tslib": "^2.6.2",
+    "typescript": "^5.4.4",
+    "typescript-eslint": "^7.5.0"
   },
   "pnpm": {
     "overrides": {
-      "@typescript-eslint/eslint-plugin": "^5",
-      "@typescript-eslint/parser": "^5",
-      "eslint": "^8",
-      "jest": "^27",
-      "prettier": "^2",
-      "ts-jest": "^27",
-      "typescript": "^4",
-      "ansi-regex@>2.1.1 <5.0.1": ">=5.0.1"
+      "jest": "^29",
+      "ts-jest": "^29",
+      "typescript": "^5",
+      "word-wrap@<1.2.4": ">=1.2.4",
+      "semver@>=7.0.0 <7.5.2": ">=7.5.2"
     }
   },
   "prettier": {
@@ -97,13 +93,11 @@
   "size-limit": [
     {
       "path": "dist/serverless-telegram.cjs.production.min.js",
-      "limit": "15 KB",
-      "webpack": false
+      "limit": "15 KB"
     },
     {
       "path": "dist/serverless-telegram.esm.js",
-      "limit": "25 KB",
-      "webpack": false
+      "limit": "25 KB"
     }
   ]
 }
