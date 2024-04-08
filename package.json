@@ -42,7 +42,6 @@
     "test:env": "env-cmd tsdx test",
     "lint": "eslint src test",
     "prepare": "husky install && tsdx build",
-    "size-install": "npm i -g pnpm && pnpm i",
     "size": "size-limit",
     "analyze": "size-limit --why",
     "check": "pnpm install && pnpm outdated --compatible && pnpm audit && pnpm lint && pnpm test && pnpm size",
