@@ -43,15 +43,14 @@
     "prepare": "husky install && pnpm build",
     "size": "size-limit",
     "analyze": "size-limit --why",
-    "check": "pnpm install-test && pnpm lint && pnpm outdated --compatible && pnpm audit -P && pnpm size",
+    "check": "pnpm install-test && pnpm lint && pnpm size && pnpm outdated --compatible && pnpm audit -P",
     "update-deps": "pnpm-update-bisect && pnpm audit --fix && pnpm check",
     "release": "pnpm check && pnpm np --no-cleanup"
   },
   "dependencies": {
     "@azure/functions": "^1.2.3",
     "@types/node-telegram-bot-api": "^0.64.6",
-    "form-data": "^4.0.0",
-    "node-fetch": "^2.7.0"
+    "form-data": "^4.0.0"
   },
   "devDependencies": {
     "@tsconfig/node18": "^18.2.4",
@@ -75,7 +74,7 @@
     "ts-jest": "^29.1.2",
     "tslib": "^2.6.2",
     "typescript": "^5.4.4",
-    "typescript-eslint": "^7.5.0"
+    "typescript-eslint": "^7.6.0"
   },
   "pnpm": {
     "overrides": {
@@ -89,11 +88,11 @@
   "size-limit": [
     {
       "path": "dist/index.cjs",
-      "limit": "150 KB"
+      "limit": "50 KB"
     },
     {
       "path": "dist/index.mjs",
-      "limit": "150 KB"
+      "limit": "50 KB"
     }
   ]
 }

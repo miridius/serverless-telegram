@@ -73,6 +73,18 @@ describe('callTgApi', () => {
     });
   });
 
+  it('throws an error if response is not valid JSON', () => {
+    expect.assertions(1);
+    return withNockback('invalidJson.json', () => {
+      const badRes = { method: 'sendMessage' } as ResponseMethod;
+      return expect(() =>
+        callTgApi(badRes),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(
+        `"Telegram API returned bad JSON: "Internal server error""`,
+      );
+    });
+  });
+
   it('throws an error if BOT_API_TOKEN is not set', () => {
     delete process.env.BOT_API_TOKEN;
     return expect(() =>
