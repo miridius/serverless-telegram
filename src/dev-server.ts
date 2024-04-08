@@ -22,6 +22,7 @@ const logFn = (
 ) =>
   LOG_LEVELS.indexOf(level) >= LOG_LEVELS.indexOf(minLevel)
     ? (...args: any[]) => logger(new Date(), level.toUpperCase(), ...args)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     : (..._: any[]) => undefined;
 
 const createLogger = (minLogLevel: LogLevel): AzureLogger => {
@@ -58,7 +59,7 @@ export class DevServer<T extends Webhook = Webhook> {
   constructor(
     private webhook: T,
     private log: AzureLogger = createLogger('debug'),
-    private timeout: number = 55,
+    private timeout = 55,
   ) {
     this.ctx = { log } as any;
     this.adapter = adapters[webhook.type];
