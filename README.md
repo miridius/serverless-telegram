@@ -138,11 +138,8 @@ Then in the newly created project you will need to add serverless-telegram as a 
 ```bash
 # or pnpm, or yarn, or ...
 npm i
-npm i serverless-telegram form-data
+npm i serverless-telegram
 ```
-
-> [!NOTE]  
-> It's not clear why `form-data` doesn't get bundled with `serverless-telegram` even though it's a dependency. Maybe it's getting removed as part of the build step. For now, you need to install it to your project as well.
 
 To create a telegram webhook handler, create a file `src/handlers/webhook.mjs` with the following content:
 
