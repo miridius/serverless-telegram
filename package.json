@@ -1,7 +1,7 @@
 {
   "name": "serverless-telegram",
   "description": "A simple library to remove some of the repetitive work in creating servlerless telegram bots",
-  "version": "0.8.2",
+  "version": "0.8.3",
   "repository": {
     "type": "git",
     "url": "https://github.com/miridius/serverless-telegram.git"
