@@ -11,10 +11,11 @@ import type {
 // re-exports
 export * from './dev-server';
 export * from './telegram/env';
+export * from './telegram/telegram-api';
 export * from './telegram/webhook-utils';
 export * from './types';
 export * as utils from './utils';
-export { wrapTelegram, wrapHttp, awsAdapter, azureAdapter };
+export { awsAdapter, azureAdapter, wrapHttp, wrapTelegram };
 
 // single combined wrapper for convenience
 export const createAzureTelegramWebhook = (

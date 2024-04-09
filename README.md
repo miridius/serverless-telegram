@@ -239,10 +239,10 @@ Next, deploy your new stack to AWS by running `sam deploy --guided`. If you want
 
 If everything worked ok you should see the new Webhook URL in the output section at the end. You will need this URL in the next steps
 
-From now on whenever you want to deploy changes you can do so by running `sam deploy`.
+From now on whenever you want to deploy changes you can do so by running `sam build && sam deploy`.
 
 > [!TIP]
-> You can edit the new `samconfig.toml` in your project root and move the `region` and `profile` (if set) keys from the `[default.deploy.parameters]` section to `[default.global.parameters] so that they apply to other commands besides deploy (e.g. logs).
+> You can edit the new `samconfig.toml` in your project root and move the `region` and `profile` (if set) keys from the `[default.deploy.parameters]` section to `[default.global.parameters]` so that they apply to other commands besides deploy (e.g. logs).
 
 Test your endpoint by sending a JSON POST request to it containing `{"update_id":1,"message":{"chat":{"id":1},"text":"hi"}}` . For example using curl:
 
@@ -496,6 +496,8 @@ env.debug('fileId:', fileId);
 // the file ID can be used to send the same video again without re-uploading:
 if (fileId) return { video: fileId };
 ```
+
+When on AWS, you can also import the lower level `callTgApi` function from this library which can be used without an `env` object. It supports any of the telegram bot API [methods](https://core.telegram.org/bots/api#available-methods), taking an object with the `method` key set to the method name (e.g. 'sendMessage') along with any other parameters.
 
 ## Logging
 
