@@ -10,15 +10,15 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        node: ['18.x', '20.x']
+        node: ['20.x', '22.x']
         os: [ubuntu-latest, windows-latest, macOS-latest]
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Use Node ${{ matrix.node }}
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
 
@@ -42,6 +42,6 @@ jobs:
 
       - name: Send test coverage data to Code Climate
         if: startsWith(matrix.os, 'ubuntu')
-        uses: paambaati/codeclimate-action@v2.7.5
+        uses: paambaati/codeclimate-action@v6
         env:
           CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}

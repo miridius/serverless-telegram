@@ -3,7 +3,6 @@
     "scope": "https://api.telegram.org:443",
     "method": "POST",
     "path": "/bot1111:fake_token/sendDocument",
-    "body": "----------------------------555555555555555555555555\r\nContent-Disposition: form-data; name=\"chat_id\"\r\n\r\n2222\r\n----------------------------555555555555555555555555\r\nContent-Disposition: form-data; name=\"document\"; filename=\"test-file.txt\"\r\nContent-Type: text/plain\r\n\r\nTest file content\r\n----------------------------555555555555555555555555\r\nContent-Disposition: form-data; name=\"reply_to_message_id\"\r\n\r\n23\r\n----------------------------555555555555555555555555\r\nContent-Disposition: form-data; name=\"reply_markup\"\r\n\r\n{\"inline_keyboard\":[[{\"text\":\"Click me\",\"url\":\"https://example.com\"}]]}\r\n----------------------------555555555555555555555555--\r\n",
     "status": 200,
     "response": {
       "ok": true,

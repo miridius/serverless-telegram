@@ -39,17 +39,12 @@ The most support is provided for AWS Lambda and Azure Function Apps but other pl
     - [Long version](#long-version)
     - [Deleting an existing webhook](#deleting-an-existing-webhook)
   - [Using with other cloud providers (AWS, GCP, etc)](#using-with-other-cloud-providers-aws-gcp-etc)
-- [Developing serverless-telegram (via <a href="https://github.com/formium/tsdx">TSDX</a>)](#developing-serverless-telegram-via-tsdx)
+- [Developing serverless-telegram](#developing-serverless-telegram)
   - [Initial Setup](#initial-setup)
   - [Commands](#commands)
   - [Configuration](#configuration)
-    - [Jest](#jest)
     - [Bundle Analysis](#bundle-analysis)
-    - [Rollup](#rollup)
-    - [TypeScript](#typescript)
-    - [Continuous Integration](#continuous-integration)
     - [GitHub Actions](#github-actions)
-  - [Optimizations](#optimizations)
   - [Module Formats](#module-formats)
   - [Publishing to NPM](#publishing-to-npm)
 
@@ -127,10 +122,10 @@ You will need two things:
 1. A NodeJS Lambda Function
 2. An API Gateway connected to that function (either the RestApi and HttpApi interface)
 
-You can set these up any number of ways, such as manually through the AWS console or using the AWS CLI, but one of the easier options is to use AWS SAM to create a project and deploy it to AWS. You will need the [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html) and to [configure your credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html#cli-configure-quickstart-config), as well as the [SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html) v1.31 or newer. Then you can run the below to create a new app with some example rest API handlers:
+You can set these up any number of ways, such as manually through the AWS console or using the AWS CLI, but one of the easier options is to use AWS SAM to create a project and deploy it to AWS. You will need the [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html) and to [configure your credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html#cli-configure-quickstart-config), as well as the [SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html). Then you can run the below to create a new app with an example handler:
 
 ```bash
-sam init --runtime nodejs20.x --app-template quick-start-web
+sam init --runtime nodejs22.x --app-template hello-world --name my-telegram-bot
 ```
 
 Then in the newly created project you will need to add serverless-telegram as a runtime dependency
@@ -200,7 +195,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: src/handlers/webhook.webhook
-      Runtime: nodejs20.x
+      Runtime: nodejs22.x
       Description: Webhook to receive updates from the Telegram bot API
       # Increase the RAM to also increase CPU quota. 1769 MB equals 1 full vCPU
       MemorySize: 256
@@ -231,7 +226,7 @@ Output:
 
 At this point you can remove the source code, tests, fixtures (events folder), and resources (from template.yml) for the other endpoints that came with the quick start template, and you can uninstall the aws-sdk dependency. Or you can keep them all and use them for reference as you develop.
 
-Next, deploy your new stack to AWS by running `sam deploy --guided`. If you want to use a specific AWS creds/config profile, pass that with `--profile`
+Next, deploy your new stack to AWS by running `sam build && sam deploy --guided`. If you want to use a specific AWS creds/config profile, pass that with `--profile`
 
 - Choose a stack name matching your project name, making sure it is unique to your AWS account & region.
 - When asked if it's ok that authorization is not defined, choose Y
@@ -590,28 +585,20 @@ A few things are happening here:
 1. AWS does not parse JSON bodies automatically so we must do this ourselves
 1. AWS will accept a JS object as a response and automatically stringify it, but it will not accept falsy values like undefined or null, instead we must convert this to an empty string
 
-# Developing serverless-telegram (via [TSDX](https://github.com/formium/tsdx))
+# Developing serverless-telegram
 
 ## Initial Setup
 
 Prerequisites:
 
-- A version of [NodeJS](https://nodejs.org/en) supported by your chosen cloud provider ([see here](https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html) for AWS)
-- [Pnpm](https://pnpm.io/) (to support package resolutions overrides)
+- [Node.js](https://nodejs.org/en) v18, v20, or v22 (v22 LTS recommended)
+- [Pnpm](https://pnpm.io/)
 
 Clone the repo and then run `pnpm install`
 
 ## Commands
 
-TSDX scaffolds the library inside `/src`.
-
-To run TSDX, use:
-
-```bash
-pnpm start
-```
-
-This builds to `/dist` and runs the project in watch mode so any edits you save inside `src` causes a rebuild to `/dist`.
+The library source is in `/src`, built with [esbuild](https://esbuild.github.io/).
 
 To do a one-off build, use `pnpm build`.
 
@@ -619,65 +606,27 @@ To run tests, use `pnpm test`.
 
 To run tests in watch mode, use `pnpm test:watch`.
 
+To check linting (TypeScript type checking + ESLint + Prettier), use `pnpm lint`.
+
 ## Configuration
 
-Code quality is set up for you with `prettier`, `husky` (v3, since v4 does not support VS Code), and `lint-staged`. Adjust the respective fields in `package.json` accordingly.
-
-### Jest
-
-Jest tests are set up to run with `pnpm test`.
+Code quality is set up with `prettier`, `husky`, and `eslint`. Configuration is in `eslint.config.js` and the `prettier` field in `package.json`.
 
 ### Bundle Analysis
 
-[`size-limit`](https://github.com/ai/size-limit) is set up to calculate the real cost of your library with `npm run size` and visualize the bundle with `npm run analyze`.
-
-### Rollup
-
-TSDX uses [Rollup](https://rollupjs.org) as a bundler and generates multiple rollup configs for various module formats and build settings. See [Optimizations](#optimizations) for details.
-
-### TypeScript
-
-`tsconfig.json` is set up to interpret `dom` and `esnext` types, as well as `react` for `jsx`. Adjust according to your needs.
-
-### Continuous Integration
+[`size-limit`](https://github.com/ai/size-limit) is set up to calculate the real cost of the library with `pnpm size` and visualize the bundle with `pnpm analyze`.
 
 ### GitHub Actions
 
 Two actions are added by default:
 
-- `main` which installs deps w/ cache, lints, tests, and builds on all pushes against a Node and OS matrix
-- `size` which comments cost comparison of your library on every pull request using [`size-limit`](https://github.com/ai/size-limit)
-
-## Optimizations
-
-Please see the main `tsdx` [optimizations docs](https://github.com/palmerhq/tsdx#optimizations). In particular, know that you can take advantage of development-only optimizations:
-
-```js
-// ./types/index.d.ts
-declare var __DEV__: boolean;
-
-// inside your code...
-if (__DEV__) {
-  console.log('foo');
-}
-```
-
-You can also choose to install and use [invariant](https://github.com/palmerhq/tsdx#invariant) and [warning](https://github.com/palmerhq/tsdx#warning) functions.
+- `main` which installs deps, lints, tests, and builds on all pushes against a Node and OS matrix
+- `size` which comments cost comparison of the library on every pull request using [`size-limit`](https://github.com/ai/size-limit)
 
 ## Module Formats
 
-CJS, ESModules, and UMD module formats are supported.
-
-The appropriate paths are configured in `package.json` and `dist/index.js` accordingly. Please report if any issues are found.
+CJS and ESModule formats are supported. The appropriate paths are configured in `package.json`.
 
 ## Publishing to NPM
 
 Run `pnpm release`
-
-```
-
-```
-
-```
-
-```

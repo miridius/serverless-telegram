@@ -2,7 +2,7 @@ import { InlineResult, ResponseMethod, ResponseObject } from './telegram';
 
 // utility types
 export type AllKeys<T> = T extends T ? keyof T : never;
-export type Mapping<T, K extends keyof T> = { [param in AllKeys<T>]?: T[K] };
+export type Mapping<T, K extends keyof T> = Partial<Record<AllKeys<T>, T[K]>>;
 
 // Mappings
 export const METHOD_MAPPING: Record<

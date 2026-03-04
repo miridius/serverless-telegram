@@ -167,7 +167,9 @@ export const postAsync = (
 ): Promise<IncomingMessage> =>
   new Promise((resolve, reject) => {
     if (useForm || hasFileParams(params)) {
-      createForm(params).submit(url, (err, res) => resolve(res));
+      createForm(params).submit(url, (err, res) =>
+        err ? reject(err) : resolve(res),
+      );
     } else {
       const body = JSON.stringify(params);
       const opts = {
@@ -190,7 +192,7 @@ const toJsonAsync = (res: IncomingMessage): Promise<any> =>
     res.on('end', () => {
       try {
         resolve(JSON.parse(body));
-      } catch (e) {
+      } catch {
         reject(new Error(`Telegram API returned bad JSON: "${body}"`));
       }
     });

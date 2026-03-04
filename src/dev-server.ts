@@ -143,11 +143,8 @@ const findAwsHandlerPaths = (projectDir: string) =>
 
 const loadAzureWebhook = (path: string): Webhook => ({
   type: 'azure',
-  handler: require(resolve(
-    path,
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    require(resolve(path, 'function.json')).scriptFile || '.',
-  )),
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  handler: require(resolve(path, require(resolve(path, 'function.json')).scriptFile || '.')),
   path,
 });
 
@@ -155,7 +152,7 @@ const loadAwsWebhook = (path: string): Webhook => {
   const [file, methodName] = path.split('.');
   return {
     type: 'aws',
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     handler: require(resolve(file))[methodName],
     path,
   };
